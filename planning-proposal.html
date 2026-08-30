@@ -1,0 +1,1130 @@
+<title>행사 발표 슬라이드 사이트 기획안</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+
+<style>
+  :root {
+    --font-sans: "IBM Plex Sans KR", "IBM Plex Sans", system-ui, -apple-system, "Malgun Gothic", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+    --bg: #F5F6F9;
+    --surface: #FFFFFF;
+    --surface-2: #EDF0F5;
+    --ink: #1A2230;
+    --ink-soft: #55606F;
+    --ink-faint: #8A94A3;
+    --line: #DBE0E9;
+    --line-strong: #C4CCD8;
+
+    --accent: #2F5DE0;
+    --accent-soft: #E7EDFC;
+    --urgent: #C93A28;
+    --urgent-soft: #F9E7E3;
+    --important: #A9740A;
+    --important-soft: #F8EED8;
+
+    --shadow: 0 1px 2px rgba(20, 30, 50, .04), 0 8px 28px -18px rgba(20, 30, 50, .22);
+  }
+
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg: #0F131A;
+      --surface: #171D26;
+      --surface-2: #202834;
+      --ink: #E7EBF2;
+      --ink-soft: #A2ADBB;
+      --ink-faint: #6A7585;
+      --line: #29323E;
+      --line-strong: #384252;
+
+      --accent: #7098F6;
+      --accent-soft: #1E2A44;
+      --urgent: #EC7361;
+      --urgent-soft: #3A2320;
+      --important: #E0A93C;
+      --important-soft: #362B18;
+
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -18px rgba(0, 0, 0, .6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0F131A;
+    --surface: #171D26;
+    --surface-2: #202834;
+    --ink: #E7EBF2;
+    --ink-soft: #A2ADBB;
+    --ink-faint: #6A7585;
+    --line: #29323E;
+    --line-strong: #384252;
+
+    --accent: #7098F6;
+    --accent-soft: #1E2A44;
+    --urgent: #EC7361;
+    --urgent-soft: #3A2320;
+    --important: #E0A93C;
+    --important-soft: #362B18;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -18px rgba(0, 0, 0, .6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .doc {
+    max-width: 768px;
+    margin: 0 auto;
+    padding: clamp(2rem, 5vw, 3.75rem) clamp(1.15rem, 5vw, 2rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.4rem;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .doc > * {
+      animation: rise .6s cubic-bezier(.2, .7, .2, 1) both;
+    }
+    .doc > *:nth-child(2) { animation-delay: .05s; }
+    .doc > *:nth-child(3) { animation-delay: .1s; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+  }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  a:focus-visible, .theme-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+  /* ---------- header ---------- */
+  .doc-head { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  .head-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .theme-btn {
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: .4rem .8rem;
+    cursor: pointer;
+  }
+  .theme-btn:hover { border-color: var(--line-strong); color: var(--ink); }
+
+  h1 {
+    font-size: clamp(1.85rem, 5.2vw, 2.6rem);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.22;
+  }
+
+  .lead {
+    font-size: 1.08rem;
+    color: var(--ink-soft);
+    line-height: 1.66;
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  .doc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+    font-family: var(--font-mono);
+    font-size: .76rem;
+    color: var(--ink-faint);
+    padding-top: .4rem;
+    border-top: 1px solid var(--line);
+  }
+  .doc-meta span + span::before {
+    content: "·";
+    margin-right: .55rem;
+    opacity: .55;
+  }
+
+  /* ---------- table of contents ---------- */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.3rem 1.4rem;
+    box-shadow: var(--shadow);
+  }
+  .toc h2 {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    margin-bottom: .95rem;
+  }
+  .toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .5rem 1.4rem;
+  }
+  .toc a {
+    display: flex;
+    gap: .7rem;
+    align-items: baseline;
+    color: var(--ink);
+    text-decoration: none;
+    font-size: .92rem;
+    padding: .2rem 0;
+  }
+  .toc a:hover { color: var(--accent); }
+  .toc-num {
+    font-family: var(--font-mono);
+    font-size: .78rem;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  @media (max-width: 540px) {
+    .toc ol { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- sections ---------- */
+  .doc-section { display: block; }
+  .doc-section > * + * { margin-top: 1.15rem; }
+  .doc-section > * + h3 { margin-top: 2.2rem; }
+  .doc-section > * + .tbl-wrap,
+  .doc-section > * + figure,
+  .doc-section > * + .callout { margin-top: 1.5rem; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+    margin: 0 0 .55rem;
+  }
+
+  h2 {
+    font-size: clamp(1.33rem, 3.6vw, 1.68rem);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -.01em;
+    padding-bottom: .7rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  h3 {
+    font-size: 1.04rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  p { margin: 0; }
+  .doc-section p { color: var(--ink); max-width: 62ch; }
+  .muted { color: var(--ink-soft) !important; }
+
+  ul.clean, ol.clean {
+    margin: 0;
+    padding-left: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    max-width: 62ch;
+  }
+  ul.clean li::marker { color: var(--ink-faint); }
+  ol.clean li::marker { color: var(--ink-faint); font-family: var(--font-mono); font-size: .85em; }
+  .clean li strong { font-weight: 600; }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: .74rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: .08em .5em;
+    white-space: nowrap;
+  }
+
+  /* ---------- callout ---------- */
+  .callout {
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 8px;
+    padding: 1.1rem 1.25rem;
+  }
+  .callout p { color: var(--ink); }
+  .callout .eyebrow { margin-bottom: .4rem; }
+
+  /* ---------- tables ---------- */
+  .tbl-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 520px;
+    font-size: .9rem;
+  }
+  thead th {
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    text-align: left;
+    padding: .7rem .85rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: .68rem .85rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    color: var(--ink);
+    background: var(--surface);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td code {
+    font-family: var(--font-mono);
+    font-size: .84em;
+    background: var(--surface-2);
+    padding: .1em .4em;
+    border-radius: 4px;
+  }
+  .req { color: var(--accent); font-weight: 600; }
+  .opt { color: var(--ink-faint); }
+
+  .prio {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    font-weight: 600;
+    padding: .12em .5em;
+    border-radius: 4px;
+    border: 1px solid currentColor;
+  }
+  .p0 { color: var(--urgent); }
+  .p1 { color: var(--accent); }
+  .p2 { color: var(--ink-faint); }
+
+  /* ---------- banner demo (full-screen image slide) ---------- */
+  figure { margin: 0; }
+  .demo-stack { display: flex; flex-direction: column; gap: .8rem; }
+
+  .pbnr {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    color: #fff;
+    isolation: isolate;
+  }
+  /* placeholder art stands in for an uploaded full-bleed event photo / poster */
+  .pbnr-art { position: absolute; inset: 0; z-index: -2; }
+  .pbnr--sports .pbnr-art { background: linear-gradient(120deg, #1f6f4d, #3fae7a 55%, #d7c14e); }
+  .pbnr--fest .pbnr-art { background: linear-gradient(125deg, #4a2597, #b0407e 52%, #f0a13c); }
+  /* bottom scrim keeps overlaid text legible over any image */
+  .pbnr::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, rgba(10, 14, 22, 0) 34%, rgba(10, 14, 22, .8) 100%);
+  }
+  .pbnr-tierbar { position: absolute; top: 0; left: 0; right: 0; height: 5px; }
+  .pbnr--urgent .pbnr-tierbar { background: var(--urgent); }
+  .pbnr--important .pbnr-tierbar { background: var(--important); }
+  .pbnr--normal .pbnr-tierbar { background: var(--accent); }
+
+  .pbnr-body {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: clamp(1rem, 4vw, 2rem);
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+  .pbnr-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+  .chip {
+    font-size: .72rem;
+    color: #fff;
+    background: rgba(255, 255, 255, .22);
+    border-radius: 4px;
+    padding: .12em .6em;
+  }
+  .pbnr-tier {
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    padding: .16em .6em;
+    border-radius: 4px;
+    color: #fff;
+  }
+  .pbnr--urgent .pbnr-tier { background: var(--urgent); }
+  .pbnr--important .pbnr-tier { background: var(--important); }
+  .pbnr--normal .pbnr-tier { background: var(--accent); }
+  .pbnr-date { font-family: var(--font-mono); font-size: .74rem; color: rgba(255, 255, 255, .82); }
+
+  .pbnr-title {
+    font-weight: 700;
+    font-size: clamp(1.15rem, 4.5vw, 2rem);
+    line-height: 1.28;
+    letter-spacing: -.01em;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+    text-wrap: balance;
+  }
+  .demo-progress {
+    height: 4px;
+    margin-top: .7rem;
+    border-radius: 99px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .demo-progress span {
+    display: block;
+    height: 100%;
+    width: 38%;
+    border-radius: 99px;
+    background: var(--accent);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .demo-progress span { animation: fill 10s linear infinite; }
+    @keyframes fill { from { width: 0; } to { width: 100%; } }
+  }
+
+  .demo-controls {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    margin-top: .7rem;
+    color: var(--ink-faint);
+  }
+  .dots { display: flex; gap: .35rem; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
+  .dot.on { background: var(--accent); }
+  .ctrl-hint { font-family: var(--font-mono); font-size: .72rem; }
+
+  figcaption {
+    margin-top: .9rem;
+    font-size: .8rem;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+
+  /* ---------- state flow ---------- */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .55rem;
+    padding: 1rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .flow-step {
+    font-family: var(--font-mono);
+    font-size: .8rem;
+    padding: .28em .7em;
+    border-radius: 5px;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+  }
+  .flow-step.on {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+    font-weight: 600;
+  }
+  .flow-arw { color: var(--ink-faint); font-size: .85rem; }
+
+  /* ---------- footer ---------- */
+  .doc-foot {
+    border-top: 1px solid var(--line);
+    padding-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    font-size: .86rem;
+    color: var(--ink-soft);
+  }
+  .doc-foot .eyebrow { margin-bottom: .2rem; }
+  .doc-foot code {
+    font-family: var(--font-mono);
+    font-size: .82em;
+    background: var(--surface-2);
+    padding: .1em .4em;
+    border-radius: 4px;
+  }
+</style>
+
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem("proposal-theme");
+      if (t === "dark" || t === "light") {
+        document.documentElement.setAttribute("data-theme", t);
+      }
+    } catch (e) {}
+  })();
+</script>
+
+<main class="doc">
+
+  <header class="doc-head">
+    <div class="head-top">
+      <p class="kicker">기획안 · Planning Proposal</p>
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="화면 테마 전환">테마</button>
+    </div>
+    <h1>학교 행사를 발표용 전체 화면 슬라이드로 알리는 사이트 구축 기획안</h1>
+    <p class="lead">
+      행사 포스터·사진을 <strong>발표 자료처럼 전체 화면 슬라이드</strong>로 띄우고, 정해진 간격으로
+      자동 전환하며 <strong>상시 반복 재생</strong>한다. 로비·복도의 디스플레이와 웹에서 함께 쓰는,
+      특정 학교에 종속되지 않는 범용 템플릿이다.
+    </p>
+    <div class="doc-meta">
+      <span>버전 v0.3 (초안)</span>
+      <span>작성일 2026-08-31</span>
+      <span>범위 범용 템플릿</span>
+      <span>유형 발표형 전체 화면 슬라이드 · 상시 반복</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="목차">
+    <h2>목차</h2>
+    <ol>
+      <li><a href="#s01"><span class="toc-num">01</span>개요</a></li>
+      <li><a href="#s02"><span class="toc-num">02</span>문제 정의</a></li>
+      <li><a href="#s03"><span class="toc-num">03</span>목표 · 성공 지표</a></li>
+      <li><a href="#s04"><span class="toc-num">04</span>사용자 · 이용 상황</a></li>
+      <li><a href="#s05"><span class="toc-num">05</span>범위 (포함 / 제외)</a></li>
+      <li><a href="#s06"><span class="toc-num">06</span>기능 명세</a></li>
+      <li><a href="#s07"><span class="toc-num">07</span>화면 구성 · 배너 사양</a></li>
+      <li><a href="#s08"><span class="toc-num">08</span>데이터 모델 · 이미지 규격</a></li>
+      <li><a href="#s09"><span class="toc-num">09</span>기술 스택 · 이미지 파이프라인</a></li>
+      <li><a href="#s10"><span class="toc-num">10</span>일정 · 리스크 · 로드맵</a></li>
+    </ol>
+  </nav>
+
+  <figure>
+    <p class="eyebrow">이런 화면을 만듭니다</p>
+    <div class="demo-stack" aria-hidden="true">
+      <div class="pbnr pbnr--fest pbnr--important">
+        <div class="pbnr-art"></div>
+        <span class="pbnr-tierbar"></span>
+        <div class="pbnr-body">
+          <div class="pbnr-meta">
+            <span class="chip">축제</span>
+            <span class="pbnr-tier">중요</span>
+            <span class="pbnr-date">10/24 (금) 17:00 · D-3</span>
+          </div>
+          <p class="pbnr-title">가을 대동제 &lt;빛나는 우리&gt; — 대운동장, 전교생·학부모 초대</p>
+        </div>
+      </div>
+      <div class="pbnr pbnr--sports pbnr--normal">
+        <div class="pbnr-art"></div>
+        <span class="pbnr-tierbar"></span>
+        <div class="pbnr-body">
+          <div class="pbnr-meta">
+            <span class="chip">체육</span>
+            <span class="pbnr-tier">일반</span>
+            <span class="pbnr-date">상시</span>
+          </div>
+          <p class="pbnr-title">가을 체육대회 종목별 참가 신청 접수 중 (담임 교사 문의)</p>
+        </div>
+      </div>
+    </div>
+    <div class="demo-progress" aria-hidden="true"><span></span></div>
+    <div class="demo-controls" aria-hidden="true">
+      <span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+      <span class="ctrl-hint">슬라이드 1 / 5 · 10초마다 자동 전환 · 마지막 → 처음 무한 반복</span>
+    </div>
+    <figcaption>
+      발표 자료처럼 이미지가 화면을 꽉 채우고(<code>object-fit: cover</code>, 포커스 포인트 기준 크롭), 하단 스크림 위에
+      제목·티어·일정이 얹힌다. 상단 진행 바가 다음 전환까지 남은 시간을 보여 준다. 디스플레이(발표) 모드는 조작 UI 없이
+      자동 전환·무한 반복만, 웹 모드는 좌우·인디케이터·스와이프를 함께 지원한다.
+    </figcaption>
+  </figure>
+
+  <!-- 01 -->
+  <section class="doc-section" id="s01">
+    <p class="eyebrow">01 — Overview</p>
+    <h2>개요</h2>
+
+    <h3>배경</h3>
+    <p>
+      학교의 행사·공지는 가정통신문, 문자, 여러 SNS 계정, 홈페이지 게시판으로 흩어져 있다.
+      복도·현관의 게시판이나 모니터는 종이 포스터를 붙이거나 담당자가 파일을 수동으로 띄우는 방식이라
+      최신 상태를 유지하기 어렵다. 열람자는 "지금 무엇이 중요하고 무엇이 임박했는지"를 한눈에 파악하기 어렵다.
+    </p>
+
+    <h3>목적</h3>
+    <p>
+      행사 포스터·현장 사진을 <strong>발표 자료 같은 전체 화면 슬라이드</strong>로 만들어, 정해진 간격으로
+      자동 전환하며 <strong>마지막 슬라이드에서 처음으로 끝없이 반복(상시 재생)</strong>한다.
+      같은 콘텐츠를 (1) 로비·복도 <strong>디스플레이(발표) 모드</strong>와 (2) 학생·학부모가 보는 <strong>웹 모드</strong>
+      두 형태로 내보낸다. 열람은 로그인 없이, 등록·예약·만료는 지정된 담당자만 한다.
+    </p>
+
+    <h3>한 줄 정의</h3>
+    <div class="callout">
+      <p>
+        행사 이미지를 <strong>우선순위가 매겨진 전체 화면 슬라이드쇼</strong>로 편성해,
+        자동 전환·무한 반복으로 상시 재생하고 디스플레이와 웹에서 함께 쓰는 반응형 알림 사이트 템플릿.
+      </p>
+    </div>
+
+    <h3>범용 템플릿 전제</h3>
+    <ul class="clean">
+      <li>특정 학교에 종속되지 않는다. 학교명·로고·브랜드 색·카테고리·문의처를 <strong>설정 파일 한 곳</strong>에서 교체한다.</li>
+      <li>초·중·고·대학, 학년부·학생회·동아리 등 운영 주체와 무관하게 재사용할 수 있어야 한다.</li>
+      <li>브랜딩 교체와 디스플레이 연결까지 <strong>반나절 이내</strong>에 끝나는 것을 배포 목표로 한다.</li>
+    </ul>
+  </section>
+
+  <!-- 02 -->
+  <section class="doc-section" id="s02">
+    <p class="eyebrow">02 — Problem</p>
+    <h2>문제 정의</h2>
+    <p>현행 채널은 저마다 다음 한계를 갖는다. 이 사이트는 그 공백, 즉 "중요도·시점 순으로 정렬된 큰 이미지 노출 + 무인 자동 운영 + 무로그인 즉시 열람"을 메운다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>채널</th><th>한계</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>종이 포스터 / 게시판</td><td>부착·교체가 수작업이고 지난 것이 그대로 남는다. 원격에서 갱신 불가.</td></tr>
+          <tr><td>디스플레이에 파일 직접 재생</td><td>담당자가 PC에서 파일을 열어 둬야 하고, 순서·만료 관리가 안 된다.</td></tr>
+          <tr><td>학교 홈페이지 게시판</td><td>시간순 정렬이라 중요 공지가 묻히고, 이미지가 작게 첨부로만 붙는다.</td></tr>
+          <tr><td>문자 / SNS</td><td>이미지 화질·노출이 채널에 좌우되고, 지난 공지 히스토리를 한곳에서 보기 어렵다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="muted">→ 필요한 것: <strong>큰 이미지 중심의 첫 화면</strong>, 중요도·시점 자동 정렬, 무인 연속 구동, 로그인 없는 즉시 열람.</p>
+  </section>
+
+  <!-- 03 -->
+  <section class="doc-section" id="s03">
+    <p class="eyebrow">03 — Goals &amp; Metrics</p>
+    <h2>목표 · 성공 지표</h2>
+
+    <h3>목표</h3>
+    <ul class="clean">
+      <li><strong>G1.</strong> 디스플레이·웹 모두에서, 3초 안에 "가장 중요한 행사 1건"을 큰 이미지와 제목으로 인지한다.</li>
+      <li><strong>G2.</strong> 담당자가 이미지 1장을 올려 공지 1건을 등록·예약하는 데 5분 이내가 걸린다.</li>
+      <li><strong>G3.</strong> 디스플레이 모드가 사람 손 없이 24시간 이상 연속 구동되며 콘텐츠를 자동 갱신한다.</li>
+      <li><strong>G4.</strong> 새 학교 배포(브랜딩 교체 → 디스플레이 연결 → 첫 게시)를 반나절 안에 마친다.</li>
+    </ul>
+
+    <h3>성공 지표 (KPI)</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>지표</th><th>목표치</th><th>측정 방법</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>첫 슬라이드 이미지 LCP</td><td>&lt; 2.5s (모바일·저속망)</td><td>Lighthouse / 필드 데이터</td></tr>
+          <tr><td>Lighthouse 성능·접근성</td><td>각 ≥ 95</td><td>CI 자동 측정</td></tr>
+          <tr><td>디스플레이 모드 무인 연속 구동</td><td>≥ 24시간, 자동 갱신 성공률 99%</td><td>워치독 로그</td></tr>
+          <tr><td>이미지 최종 전송 용량</td><td>뷰포트당 ≤ 300KB</td><td>빌드 리포트</td></tr>
+          <tr><td>등록 시 alt 텍스트 입력률</td><td>100% (필수화)</td><td>폼 유효성</td></tr>
+          <tr><td>배너 → 상세 클릭률 (웹)</td><td>기준선 확보 후 개선 추적</td><td>경량 클릭 로깅</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="doc-section" id="s04">
+    <p class="eyebrow">04 — Users &amp; Contexts</p>
+    <h2>사용자 · 이용 상황</h2>
+
+    <h3>디스플레이 앞 열람자 — 지나가는 학생 · 방문자</h3>
+    <p>
+      복도·현관을 지나며 <strong>몇 초간</strong> 본다. 조작하지 않는다. 멀리서도 읽히는 큰 이미지와 짧은 제목,
+      날짜/D-day가 핵심. 슬라이드는 천천히(8~10초) 넘어가야 한다.
+    </p>
+
+    <h3>웹 열람자 — 학생 · 학부모 · 교직원</h3>
+    <p>
+      주로 모바일. 전체 화면 슬라이드에서 관심 있는 행사를 <strong>탭</strong>해 상세(일정·장소·준비물·우천 시 대응)를 확인한다.
+      아래로 스크롤하면 전체 목록으로 이어진다.
+    </p>
+
+    <h3>운영자 — 담당 교사 · 행정실 · 학생회 담당</h3>
+    <p>
+      1~5명. 이미지를 올리고 <strong>크롭·포커스 포인트</strong>를 지정한 뒤 티어·게시 기간만 정하면 끝나야 한다.
+      예약 게시와 자동 만료는 필수 — 지난 행사가 화면에 남지 않도록 한다.
+    </p>
+
+    <h3>배포자 — 초기 구축 담당 / 외주</h3>
+    <p>설정 파일과 환경변수로 브랜딩·카테고리를 정의하고, 디스플레이 PC/TV 브라우저를 <code>/display</code> 주소로 고정한다.</p>
+  </section>
+
+  <!-- 05 -->
+  <section class="doc-section" id="s05">
+    <p class="eyebrow">05 — Scope</p>
+    <h2>범위 (포함 / 제외)</h2>
+
+    <h3>이번 범위에 포함</h3>
+    <ul class="clean">
+      <li>전체 화면 이미지 슬라이드 — 우선순위 정렬, 고정 핀, 자동 순환, 페이드/슬라이드 전환</li>
+      <li>디스플레이(키오스크) 모드 — 크롬 없는 전체 화면, 자동 콘텐츠 갱신, 화면 꺼짐 방지</li>
+      <li>웹 모드 — 전체 화면 히어로 슬라이드 + 좌우·인디케이터·스와이프 조작, 탭 시 상세</li>
+      <li>이미지 업로드 → 자동 리사이즈·포맷 변환(AVIF/WebP/JPEG) → 반응형 <code>srcset</code></li>
+      <li>크롭 미리보기 + 포커스 포인트 지정, 가로·세로 디스플레이 대응</li>
+      <li>가독성 스크림 자동 적용, 이미지가 없을 때 브랜드 배경 + 타이포 대체</li>
+      <li>3단계 중요도 티어 — 긴급 / 중요 / 일반 (색 + 아이콘 + 라벨)</li>
+      <li>행사 상세 페이지 — 본문, 일정, 장소, 첨부 링크, 우천·비상 시 대응</li>
+      <li>전체 목록 페이지 — 카테고리·기간 필터, 제목 검색</li>
+      <li>관리자 — 등록 / 수정 / 삭제, 예약 게시, 자동 만료, 미리보기</li>
+      <li>반응형 · 다크 모드 · 접근성 WCAG 2.1 AA 목표 (alt 텍스트 필수)</li>
+      <li>브랜딩 설정 1파일, 상세 페이지 <code>.ics</code> 내보내기</li>
+    </ul>
+
+    <h3>이번 범위에서 제외 <span class="tag">→ 10. 로드맵 참고</span></h3>
+    <ul class="clean">
+      <li>동영상 슬라이드, 여러 디스플레이의 중앙 관리 콘솔</li>
+      <li>행사 신청·설문·참석 체크</li>
+      <li>이메일 / 웹푸시 알림 발송</li>
+      <li>구글·네이버 캘린더 양방향 연동</li>
+      <li>다국어(i18n) — 문구 상수화 준비까지만</li>
+      <li>사용자 계정·권한 세분화 — 관리자 단일 역할만</li>
+      <li>통계 대시보드 — 외부 분석 도구로 대체</li>
+    </ul>
+  </section>
+
+  <!-- 06 -->
+  <section class="doc-section" id="s06">
+    <p class="eyebrow">06 — Features</p>
+    <h2>기능 명세</h2>
+    <p>
+      우선순위: <span class="prio p0">P0</span> 출시 필수 · <span class="prio p1">P1</span> 출시 직후 ·
+      <span class="prio p2">P2</span> 이후 개선.
+    </p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>기능</th><th>설명</th><th>우선순위</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>발표형 전체 화면 슬라이드쇼</td>
+            <td>이미지가 뷰포트를 꽉 채움(<code>object-fit: cover</code>). 티어·게시 시작일 순으로 편성, 슬라이드당 표시 시간 후 자동 전환, <strong>마지막 → 처음 무한 반복</strong>.</td>
+            <td><span class="prio p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>전환 효과 &amp; 진행 표시</td>
+            <td>전환 방식(페이드 / 슬라이드 / 없음)과 슬라이드당 시간(기본 10초)을 설정에서 지정. 상단 진행 바 + "n / 전체" 카운터로 다음 전환까지 표시.</td>
+            <td><span class="prio p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>이미지 업로드 &amp; 자동 최적화</td>
+            <td>원본 보관 + 다중 크기 생성(640·1280·1920·2560), AVIF·WebP·JPEG 폴백, <code>srcset</code>·<code>sizes</code> 자동.</td>
+            <td><span class="prio p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>가독성 스크림 &amp; 텍스트 오버레이</td>
+            <td>하단 그라디언트 스크림 자동. 밝은 이미지에서도 대비 4.5:1 확보, 미달 시 하단 솔리드 바로 폴백.</td>
+            <td><span class="prio p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>디스플레이(발표) 모드 · 상시 재생</td>
+            <td><code>/display</code> 전용 라우트. 크롬·조작 UI 없이 슬라이드쇼만 무한 반복. N분마다 콘텐츠 자동 갱신, Screen Wake Lock, 멈춤 감지 시 자동 새로고침.</td>
+            <td><span class="prio p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>중요도 티어</td>
+            <td>긴급(빨강)·중요(주황)·일반(파랑)을 <strong>색 + 아이콘 + 라벨</strong> 3중 표기. 티어 색은 브랜드 색과 분리.</td>
+            <td><span class="prio p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>고정 핀 (pin)</td>
+            <td>회전과 무관하게 항상 첫 슬라이드로 노출. 동시 1건 권장, 2건 이상이면 관리자에 경고.</td>
+            <td><span class="prio p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>예약 게시 &amp; 자동 만료</td>
+            <td>게시 시작/종료 일시 지정. 종료 후 슬라이드·목록 상단에서 자동 제외, 목록엔 '지난 행사'로 잔류.</td>
+            <td><span class="prio p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>상세 페이지 + 관리자 등록 폼</td>
+            <td>제목·기간·장소·본문·첨부·문의처·대응 안내. 필수: 이미지·alt·제목·티어·게시 기간. 저장 전 미리보기.</td>
+            <td><span class="prio p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>크롭 미리보기 &amp; 포커스 포인트</td>
+            <td>업로드 후 관리자가 크롭 프레임·초점을 지정. 가로/세로 뷰포트별 잘림을 미리 확인.</td>
+            <td><span class="prio p1">P1</span></td>
+          </tr>
+          <tr>
+            <td>이미지 없을 때 대체</td>
+            <td>브랜드 배경 + 대형 타이포 + 카테고리 아이콘으로 자동 구성.</td>
+            <td><span class="prio p1">P1</span></td>
+          </tr>
+          <tr>
+            <td>세로(포트레이트) 디스플레이 대응</td>
+            <td>세로 방향 감지 시 세로용 대체 이미지 사용, 없으면 초점 기준 세로 크롭.</td>
+            <td><span class="prio p1">P1</span></td>
+          </tr>
+          <tr>
+            <td>웹 슬라이드 조작 &amp; 접근성</td>
+            <td>좌우 버튼·인디케이터·스와이프, 키보드 전체 조작, <code>prefers-reduced-motion</code> 시 페이드/즉시 전환, 오버·포커스 시 정지.</td>
+            <td><span class="prio p1">P1</span></td>
+          </tr>
+          <tr>
+            <td>카테고리·기간 필터 / 전체 목록</td>
+            <td>칩 토글(URL 쿼리 반영), 제목 검색, 페이지네이션.</td>
+            <td><span class="prio p1">P1</span></td>
+          </tr>
+          <tr>
+            <td><code>.ics</code> 내보내기</td>
+            <td>상세 페이지 "내 캘린더에 추가"로 행사 1건 다운로드.</td>
+            <td><span class="prio p1">P1</span></td>
+          </tr>
+          <tr>
+            <td>경량 클릭·노출 로깅 / 임시저장 / RSS·JSON 피드</td>
+            <td>배너 노출·클릭 카운트, 초안 보관, 타 시스템 연계용 피드.</td>
+            <td><span class="prio p2">P2</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="doc-section" id="s07">
+    <p class="eyebrow">07 — Screens &amp; Banner Spec</p>
+    <h2>화면 구성 · 배너 사양</h2>
+
+    <h3>정보 구조 (IA)</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>경로</th><th>화면</th><th>구성</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>/</code></td><td>웹 메인</td><td>전체 화면 히어로 슬라이드(1뷰포트) → 스크롤 시 이번 주 요약 + 카테고리 바로가기</td></tr>
+          <tr><td><code>/display</code></td><td>디스플레이(발표) 모드</td><td>크롬 없는 전체 화면 슬라이드쇼 무한 반복. 자동 갱신·화면 꺼짐 방지·멈춤 자동 복구, 조작 UI 없음</td></tr>
+          <tr><td><code>/events</code></td><td>목록</td><td>필터 바(카테고리·기간·검색) + 이미지 썸네일 카드 리스트</td></tr>
+          <tr><td><code>/events/:slug</code></td><td>상세</td><td>대표 이미지 + 제목·기간·장소·본문·첨부·문의처·대응 안내 + 캘린더 추가</td></tr>
+          <tr><td><code>/admin</code></td><td>관리자</td><td>상태 뱃지가 붙은 공지 테이블 + 등록/수정 폼 + 이미지 업로드·크롭·포커스 UI</td></tr>
+          <tr><td>—</td><td>빈 상태</td><td>"지금 예정된 행사가 없습니다" — 브랜드 배경 정적 화면</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>슬라이드쇼 편성 · 재생 규칙</h3>
+    <ul class="clean">
+      <li><strong>편성 순서:</strong> 고정 핀 → 티어(긴급 &gt; 중요 &gt; 일반) → 게시 시작일 오름차순 → 등록일.</li>
+      <li><strong>재생:</strong> 슬라이드당 표시 시간(설정, 기본 10초) 경과 시 다음으로 전환, <strong>마지막에서 첫 슬라이드로 끊김 없이 순환(상시 반복)</strong>.</li>
+      <li><strong>진행 표시:</strong> 상단 진행 바가 남은 시간을, 하단 인디케이터가 "현재 / 전체"를 표시.</li>
+      <li><strong>이미지:</strong> 뷰포트를 꽉 채우고 포커스 포인트 기준 크롭. 로드 전 저해상도 블러 또는 브랜드 색 자리표시.</li>
+      <li><strong>텍스트:</strong> 하단 정렬. 카테고리 칩 · 티어 · 제목(최대 2줄) · 날짜/D-day. 디스플레이 모드는 글자 크기를 키운다.</li>
+      <li><strong>전환 효과:</strong> 페이드 / 슬라이드 / 없음 중 설정. <code>prefers-reduced-motion</code> 시 페이드 또는 즉시.</li>
+      <li><strong>조작:</strong> 웹만 좌우·인디케이터·스와이프, 오버·포커스 시 정지. 디스플레이 모드는 자동 전환·반복만.</li>
+      <li><strong>단일 항목:</strong> 슬라이드가 1건이면 정적 표시(전환 없음).</li>
+      <li><strong>콘텐츠 갱신:</strong> 재생 중 N분마다 최신 편성을 받아 현재 슬라이드가 끝난 뒤 자연스럽게 교체.</li>
+    </ul>
+
+    <h3>티어 정의</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>티어</th><th>색 · 표기</th><th>사용 기준</th><th>노출</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>긴급</td><td>빨강 + 경고 아이콘 + "긴급"</td><td>당일·즉시 행동이 필요한 안전·일정 변경 (대피, 휴교, 시험 시각 변경)</td><td>고정 핀 다음, 항상 앞쪽. 동시 2건 이상 시 관리자 경고</td></tr>
+          <tr><td>중요</td><td>주황 + 별표 아이콘 + "중요"</td><td>일정·준비물이 걸린 주요 행사 (체육대회, 축제, 시험, 현장학습)</td><td>긴급 다음 순서</td></tr>
+          <tr><td>일반</td><td>파랑 + 정보 아이콘 + "일반"</td><td>참고성 안내 (개방 시간 변경, 신청 접수, 동아리 모집)</td><td>회전 후순위</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>공지 상태 흐름</h3>
+    <div class="flow" role="img" aria-label="공지 상태 흐름: 초안에서 예약, 게시중, 만료, 보관 순으로 진행">
+      <span class="flow-step">초안</span>
+      <span class="flow-arw">→</span>
+      <span class="flow-step">예약</span>
+      <span class="flow-arw">→</span>
+      <span class="flow-step on">게시 중</span>
+      <span class="flow-arw">→</span>
+      <span class="flow-step">만료</span>
+      <span class="flow-arw">→</span>
+      <span class="flow-step">보관</span>
+    </div>
+    <p class="muted">
+      예약·게시 중·만료는 <code>startAt</code> / <code>endAt</code>으로 자동 판정된다. 초안과 보관만 관리자가 수동으로 지정한다.
+    </p>
+  </section>
+
+  <!-- 08 -->
+  <section class="doc-section" id="s08">
+    <p class="eyebrow">08 — Data Model &amp; Image Spec</p>
+    <h2>데이터 모델 · 이미지 규격</h2>
+
+    <h3>Event 객체</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>필드</th><th>타입</th><th>필수</th><th>설명</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>string</td><td class="req">필수</td><td>고유 식별자. URL slug 겸용 가능</td></tr>
+          <tr><td><code>title</code></td><td>string</td><td class="req">필수</td><td>슬라이드·목록에 노출되는 제목</td></tr>
+          <tr><td><code>image</code></td><td>file</td><td class="req">필수</td><td>업로드 원본(가로). 여러 크기·포맷은 파이프라인이 생성</td></tr>
+          <tr><td><code>imageAlt</code></td><td>string</td><td class="req">필수</td><td>대체 텍스트. 스크린리더·이미지 미표시 시 사용</td></tr>
+          <tr><td><code>focalPoint</code></td><td>{ x, y }</td><td class="opt">선택</td><td>크롭 초점(0~1). 미지정 시 중앙</td></tr>
+          <tr><td><code>imagePortrait</code></td><td>file</td><td class="opt">선택</td><td>세로 디스플레이용 대체 이미지</td></tr>
+          <tr><td><code>tier</code></td><td>enum</td><td class="req">필수</td><td><code>urgent</code> | <code>important</code> | <code>normal</code></td></tr>
+          <tr><td><code>category</code></td><td>string</td><td class="opt">선택</td><td>설정에 정의된 카테고리 중 하나</td></tr>
+          <tr><td><code>pinned</code></td><td>boolean</td><td class="opt">선택</td><td>고정 핀 여부. 기본 <code>false</code></td></tr>
+          <tr><td><code>startAt</code> / <code>endAt</code></td><td>datetime</td><td class="req">필수</td><td>게시 시작·종료. <code>endAt</code>이 자동 만료 기준</td></tr>
+          <tr><td><code>eventStart</code> / <code>eventEnd</code></td><td>datetime</td><td class="opt">선택</td><td>실제 행사 일시. D-day·<code>.ics</code>에 사용</td></tr>
+          <tr><td><code>location</code></td><td>string</td><td class="opt">선택</td><td>장소</td></tr>
+          <tr><td><code>body</code></td><td>markdown</td><td class="opt">선택</td><td>상세 본문(서식 허용)</td></tr>
+          <tr><td><code>links</code></td><td>array</td><td class="opt">선택</td><td><code>{ label, url }</code> 목록. 첨부·외부 신청 링크</td></tr>
+          <tr><td><code>contact</code> / <code>contingency</code></td><td>string</td><td class="opt">선택</td><td>문의처 / 우천·비상 시 대응</td></tr>
+          <tr><td><code>status</code></td><td>enum</td><td class="opt">파생</td><td><code>draft</code> | <code>scheduled</code> | <code>published</code> | <code>expired</code> | <code>archived</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>이미지 규격 가이드</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>항목</th><th>기준</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>업로드 원본</td><td>가로 방향, 권장 2560×1440(16:9), 최소 1600×900, 최대 5MB, JPG/PNG/WebP</td></tr>
+          <tr><td>생성 크기</td><td>너비 640 / 1280 / 1920 / 2560 · 포맷 AVIF → WebP → JPEG 폴백</td></tr>
+          <tr><td>최종 전송 용량</td><td>뷰포트당 ≤ 300KB 목표, 첫 슬라이드는 <code>preload</code></td></tr>
+          <tr><td>세로 디스플레이</td><td><code>imagePortrait</code> 우선, 없으면 <code>focalPoint</code> 기준 9:16 크롭</td></tr>
+          <tr><td>안전 영역</td><td>하단 28%는 스크림·텍스트가 덮으므로 핵심 피사체는 상단·중앙에 배치 권장</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Config 객체 (브랜딩 설정 1파일)</h3>
+    <p><code>schoolName</code>, <code>logoUrl</code>, <code>brandColor</code>(헤더·링크 전용, 티어 색과 분리), <code>categories[]</code>, <code>footer{ address, phone, siteUrl }</code>, <code>timezone</code> / <code>locale</code>, <code>display{ interval, transition, refreshEvery, orientation }</code>.</p>
+  </section>
+
+  <!-- 09 -->
+  <section class="doc-section" id="s09">
+    <p class="eyebrow">09 — Tech Stack &amp; Image Pipeline</p>
+    <h2>기술 스택 · 이미지 파이프라인</h2>
+    <p>
+      공통 원칙: <strong>정적 우선</strong>, 산출물은 CDN 배포, 런타임 의존성 최소화, 서버 상시 운영 없이도 동작.
+      슬라이드 정렬·순환·필터 로직은 프레임워크에 비종속인 순수 JS 모듈로 분리해 재사용한다.
+    </p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>옵션</th><th>구성</th><th>이미지 처리</th><th>적합 대상</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A. 정적 + JSON 파일</td>
+            <td>SSG(Astro · Eleventy) + 저장소의 <code>events.json</code> · 이미지</td>
+            <td>빌드 시 이미지 변환(sharp / Astro Image)</td>
+            <td>개발자 1인이 관리하거나 공지 빈도가 낮은 곳. 비용 0, 비개발자 등록은 불편</td>
+          </tr>
+          <tr>
+            <td>B. 정적 + 헤드리스 CMS <span class="tag">권장</span></td>
+            <td>SSG + Sanity · Decap, 빌드 웹훅으로 재배포</td>
+            <td>Sanity는 이미지 CDN·크롭·포커스 내장 / Decap은 Netlify Image CDN 등 별도 연결</td>
+            <td>담당 교사가 직접 이미지 업로드·크롭. 범용 배포에 가장 적합</td>
+          </tr>
+          <tr>
+            <td>C. 풀스택 경량</td>
+            <td>Next.js + DB + 자체 관리자, <code>next/image</code> 또는 이미지 CDN</td>
+            <td>요청 시 온디맨드 리사이즈</td>
+            <td>로깅·초안·피드까지 자체 제어가 필요하고 유지보수 인력이 있을 때</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <p class="eyebrow">권장</p>
+      <p>
+        <strong>옵션 B (SSG + Sanity)</strong>. 비개발자가 이미지를 올리고 크롭·포커스를 지정할 수 있고,
+        이미지 CDN이 다중 크기·포맷을 자동 제공한다. 예약·만료는 "빌드 시점 필터 + 하루 1회 정기 재빌드 +
+        디스플레이 모드의 N분 폴링"으로 충분하다. 서버 상시 운영 부담이 없다.
+      </p>
+    </div>
+
+    <h3>디스플레이(발표) 모드 · 상시 반복 구현</h3>
+    <ul class="clean">
+      <li><strong>상시 재생:</strong> <code>requestAnimationFrame</code> 기반 타이머로 슬라이드당 시간 경과 시 인덱스를 <code>(i + 1) % n</code>으로 순환. 탭 백그라운드 후 복귀해도 타이머·진행 바가 어긋나지 않게 보정.</li>
+      <li><strong>전환:</strong> 두 레이어 교차 페이드(또는 translate) + 다음 이미지 미리 디코드로 깜빡임 방지.</li>
+      <li><strong>콘텐츠 갱신:</strong> <code>/display</code>가 N분(기본 5분)마다 편성 JSON을 폴링해 현재 슬라이드가 끝난 뒤 교체. 실패 시 마지막 캐시 유지.</li>
+      <li><strong>화면 유지:</strong> Screen Wake Lock API로 절전 방지, 가시성 복귀 시 즉시 재동기화.</li>
+      <li><strong>안정성:</strong> 프런트 워치독(멈춤·에러 감지 시 자동 새로고침), 오프라인 배지, 브라우저 전체 화면·자동 실행은 배포 가이드로 안내.</li>
+      <li><strong>방향:</strong> 설정 <code>display.orientation</code>으로 가로/세로 지정, 세로 시 <code>imagePortrait</code> 사용.</li>
+    </ul>
+
+    <h3>부가 기준</h3>
+    <ul class="clean">
+      <li>호스팅: Netlify · Vercel · Cloudflare Pages · 학교 자체 정적 호스팅 중 택1.</li>
+      <li>성능: 이미지 지연 로딩(첫 슬라이드 preload), 폰트 서브셋, 슬라이드 로직 외 JS 번들 &lt; 35KB(gzip) 목표.</li>
+      <li>접근성: alt 텍스트 필수화, 스크림 대비 자동 검사, 키보드·스크린리더 점검을 릴리스 체크리스트에 포함.</li>
+    </ul>
+  </section>
+
+  <!-- 10 -->
+  <section class="doc-section" id="s10">
+    <p class="eyebrow">10 — Timeline, Risks &amp; Roadmap</p>
+    <h2>일정 · 리스크 · 로드맵</h2>
+
+    <h3>일정 — 총 7주 (개발 1~2인 가정)</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>주차</th><th>산출물</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>W1</td><td>기획 확정, 와이어프레임, 설정 스키마, 디자인 토큰, 이미지 규격 확정</td></tr>
+          <tr><td>W2</td><td>데이터 모델, 콘텐츠 소스(옵션 B) 셋업, 정적 뼈대</td></tr>
+          <tr><td>W3</td><td>이미지 파이프라인(업로드·다중 크기·srcset), 전체 화면 슬라이드 + 스크림</td></tr>
+          <tr><td>W4</td><td>디스플레이 모드(자동 갱신·wake lock·워치독), 티어·고정 핀·예약·만료</td></tr>
+          <tr><td>W5</td><td>웹 슬라이드 조작·상세·목록·필터, 크롭/포커스 UI</td></tr>
+          <tr><td>W6</td><td>반응형·다크 모드·세로 디스플레이, 접근성·성능 튜닝</td></tr>
+          <tr><td>W7</td><td>브랜딩 설정 문서화, 배포 파이프라인, 운영자·디스플레이 설치 매뉴얼, 1개 학교 파일럿</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>리스크 &amp; 대응</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>리스크</th><th>영향</th><th>대응</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>저해상도·세로 사진 업로드</td>
+            <td>디스플레이에서 흐릿하거나 심하게 잘림</td>
+            <td>최소 해상도 검증, 크롭 미리보기, 세로 대체 이미지 필드 안내</td>
+          </tr>
+          <tr>
+            <td>이미지 저작권·초상권</td>
+            <td>법적 문제, 게시 중단</td>
+            <td>업로드 시 확인 체크박스, 학교 제공 소스·촬영 동의 가이드 문서화</td>
+          </tr>
+          <tr>
+            <td>밝은 이미지에 텍스트가 묻힘</td>
+            <td>제목 판독 불가</td>
+            <td>자동 스크림 + 대비 검사, 미달 시 하단 솔리드 바로 폴백</td>
+          </tr>
+          <tr>
+            <td>디스플레이 PC 브라우저 방치·멈춤</td>
+            <td>지난 콘텐츠가 계속 노출</td>
+            <td>N분 폴링 갱신 + 워치독 자동 새로고침, 오프라인 시 마지막 캐시 표시</td>
+          </tr>
+          <tr>
+            <td>큰 이미지로 LCP 악화</td>
+            <td>웹 첫 화면 느림</td>
+            <td>srcset·지연 로딩, 첫 슬라이드 preload, 용량 상한 빌드 검사</td>
+          </tr>
+          <tr>
+            <td>만료일 누락 / '긴급' 남발</td>
+            <td>정보 신뢰도·신호 가치 저하</td>
+            <td><code>endAt</code> 필수화 + 기본값 제안, 긴급 사용 가이드 + 동시 2건 경고</td>
+          </tr>
+          <tr>
+            <td>학교 브랜드색이 티어 색과 충돌</td>
+            <td>티어 인지 실패</td>
+            <td>티어 색은 고정 팔레트, 브랜드색은 헤더·링크에만 적용</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>확장 로드맵 <span class="tag">이번 범위 밖</span></h3>
+    <ul class="clean">
+      <li><strong>v1.1</strong> — 동영상 슬라이드, 슬라이드별 표시 시간 개별 설정</li>
+      <li><strong>v1.2</strong> — 여러 디스플레이 중앙 관리(그룹·편성·원격 새로고침)</li>
+      <li><strong>v1.3</strong> — 행사 신청·간단 설문</li>
+      <li><strong>v1.4</strong> — 구독형 알림(이메일 / 웹푸시), 학사 캘린더 뷰·외부 캘린더 연동</li>
+      <li><strong>v1.5</strong> — 다국어(학부모 대상), 노출·클릭 통계 대시보드</li>
+    </ul>
+  </section>
+
+  <footer class="doc-foot">
+    <p class="eyebrow">문서 정보</p>
+    <p>버전 <code>v0.3</code> (초안) · 작성일 2026-08-31</p>
+    <p>다음 단계: 이해관계자 검토 → 와이어프레임 · 이미지 규격 승인 → W1 착수</p>
+    <p>검토 요청 대상: 정보부 · 행정실 · 학생회 담당 · 시설(디스플레이) 담당</p>
+  </footer>
+
+</main>
+
+<script>
+  (function () {
+    var btn = document.getElementById("themeBtn");
+    if (!btn) return;
+    function current() {
+      var explicit = document.documentElement.getAttribute("data-theme");
+      if (explicit) return explicit;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    btn.addEventListener("click", function () {
+      var next = current() === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("proposal-theme", next); } catch (e) {}
+    });
+  })();
+</script>
