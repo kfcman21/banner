@@ -184,7 +184,6 @@
     border-radius: 7px;
     font-variant-numeric: tabular-nums;
   }
-  .slide-place::before { content: "· "; color: var(--ink-faint); }
 
   /* ---------- progress bar ---------- */
   .progress {
@@ -744,10 +743,6 @@
           <label for="fNote">일시 대신 표시할 문구</label>
           <input type="text" id="fNote" maxlength="24" placeholder="상시 접수 / 10월 31일까지">
         </div>
-        <div class="fld">
-          <label for="fPlace">장소 · 대상</label>
-          <input type="text" id="fPlace" maxlength="40" placeholder="대운동장 · 전교생">
-        </div>
         <div class="fld-row">
           <div class="fld">
             <label for="fSeconds">표시 시간(초)</label>
@@ -826,7 +821,6 @@ const EVENTS = [
     tier: "urgent",
     eventStart: inDays(0, 14, 0),
     endAt: inDays(0, 23, 59),
-    place: "전 학년 · 대운동장 집합",
     art: "linear-gradient(135deg, #3a0d0d 0%, #a11f1f 52%, #e0533a 100%)",
     seconds: 12,
   },
@@ -837,7 +831,6 @@ const EVENTS = [
     pinned: true,
     eventStart: inDays(3, 17, 0),
     endAt: inDays(3, 21, 30),
-    place: "대운동장 · 전교생과 학부모 초대",
     art: "linear-gradient(125deg, #3b1578 0%, #ab2f7e 50%, #f0a13c 100%)",
   },
   {
@@ -846,7 +839,6 @@ const EVENTS = [
     tier: "important",
     eventStart: inDays(12, 9, 0),
     endAt: inDays(15, 17, 0),
-    place: "전 학년 · 1~4교시",
     art: "linear-gradient(135deg, #0f1a3a 0%, #24407e 58%, #5f7fb8 100%)",
   },
   {
@@ -855,7 +847,6 @@ const EVENTS = [
     tier: "normal",
     note: "10월 31일까지",
     endAt: inDays(20, 23, 59),
-    place: "평일 21:00까지 운영",
     art: "linear-gradient(135deg, #07312e 0%, #116b63 55%, #57b0a6 100%)",
   },
   {
@@ -864,7 +855,6 @@ const EVENTS = [
     tier: "normal",
     note: "상시 접수",
     endAt: inDays(25, 23, 59),
-    place: "학생회실 앞 신청서 제출",
     art: "linear-gradient(135deg, #123a1e 0%, #2e8f4c 55%, #a7d24e 100%)",
   },
   {
@@ -873,7 +863,6 @@ const EVENTS = [
     tier: "important",
     eventStart: inDays(6, 15, 30),
     endAt: inDays(6, 17, 30),
-    place: "3학년 · 시청각실",
     art: "linear-gradient(135deg, #221a5c 0%, #3b4bb0 55%, #7aa0e0 100%)",
   },
 ];
@@ -941,7 +930,6 @@ const fPinned = document.getElementById("fPinned");
 const fStart = document.getElementById("fStart");
 const fEnd = document.getElementById("fEnd");
 const fNote = document.getElementById("fNote");
-const fPlace = document.getElementById("fPlace");
 const fSeconds = document.getElementById("fSeconds");
 const fImage = document.getElementById("fImage");
 const fThumb = document.getElementById("fThumb");
@@ -1119,7 +1107,6 @@ function buildSlides() {
         <div class="slide-when">
           <span class="slide-dday">${esc(ddayLabel(ev))}</span>
           ${when ? `<span>${esc(when)}</span>` : ""}
-          ${ev.place ? `<span class="slide-place">${esc(ev.place)}</span>` : ""}
         </div>
       </div>`;
     // 배경(이미지 data URI / 그라디언트)은 속성 문자열이 아니라 DOM 프로퍼티로 지정
@@ -1427,7 +1414,6 @@ function editRow(id) {
   fStart.value = toDTLocal(ev.eventStart);
   fEnd.value = toDTLocal(ev.endAt);
   fNote.value = ev.note || "";
-  fPlace.value = ev.place || "";
   fSeconds.value = ev.seconds || "";
   formArt = ev.art || PRESETS[0].css;
   selSwatch(PRESETS.findIndex((p) => p.css === formArt));
@@ -1462,7 +1448,6 @@ adminForm.addEventListener("submit", (e) => {
     eventStart: fromDTLocal(fStart.value),
     endAt,
     note: fNote.value.trim(),
-    place: fPlace.value.trim(),
     seconds: fSeconds.value ? Math.min(60, Math.max(4, Number(fSeconds.value))) : null,
     art: formArt,
   };
