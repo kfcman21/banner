@@ -775,9 +775,6 @@
   </div>
 
   <div class="toolbar" id="toolbar">
-    <button class="tbtn" id="adminBtn" type="button">
-      <span class="ico" aria-hidden="true">✎</span><span class="lbl">행사 입력</span>
-    </button>
     <button class="tbtn" id="playBtn" type="button" aria-pressed="false">
       <span class="ico" aria-hidden="true">❙❙</span><span class="lbl">일시정지</span>
     </button>
@@ -910,7 +907,7 @@
 <script>
 /* =========================================================================
    행사 안내 전광판
-   · 우하단 "행사 입력" 버튼 또는 단축키 Alt+A 로 입력 화면을 엽니다.
+   · 입력 화면은 단축키 Alt+A 로만 엽니다(화면에 버튼 없음). 복구는 주소 끝 #reset.
    · 입력한 행사는 이 브라우저(사이니지 PC)에 저장됩니다(localStorage).
    · 아래 CONFIG / EVENTS 는 처음 실행 시 채워지는 기본 예시입니다.
    · tier : "urgent"(긴급) | "important"(중요) | "normal"(일반)
@@ -1046,7 +1043,7 @@ const clockEl = document.getElementById("clock");
 
 const adminEl = document.getElementById("admin");
 const adminBackdrop = document.getElementById("adminBackdrop");
-const adminBtn = document.getElementById("adminBtn");
+const adminBtn = document.getElementById("adminBtn");   // 없음: 입력은 단축키(Alt+A) 로만
 const adminClose = document.getElementById("adminClose");
 const adminListEl = document.getElementById("adminList");
 const adminForm = document.getElementById("adminForm");
@@ -1501,7 +1498,7 @@ function setAdmin(on) {
     renderAdminList();
     if (!refreshGate()) setTimeout(() => { try { fTitle.focus(); } catch (e) {} }, 60);
   } else {
-    try { adminBtn.focus(); } catch (e) {}
+    if (adminBtn) { try { adminBtn.focus(); } catch (e) {} }
     poke();
   }
 }
@@ -1755,7 +1752,7 @@ fImage.addEventListener("change", async () => {
 fCancel.addEventListener("click", resetForm);
 adminClose.addEventListener("click", () => setAdmin(false));
 adminBackdrop.addEventListener("click", () => setAdmin(false));
-adminBtn.addEventListener("click", () => setAdmin(!isAdminOpen()));
+if (adminBtn) adminBtn.addEventListener("click", () => setAdmin(!isAdminOpen()));
 document.getElementById("serverSave").addEventListener("click", () => {
   setSync("서버에 저장 중…");
   pushToServer();
