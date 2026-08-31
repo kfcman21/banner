@@ -714,8 +714,21 @@
     .slide-body { max-width: 100%; }
   }
 
-  /* 사진 비율이 화면 비율과 크게 다르면(JS 가 판단해 .fit-contain 부여):
-     잘라내지 않고 전체가 보이도록 맞추고, 남는 여백은 같은 사진의 흐린 확대본으로 채움 */
+  /* ▶ 모바일·태블릿(작은 화면 또는 세로 화면): 배경 이미지를 잘라내지 않고
+     전체가 화면에 보이도록 자동으로 맞춤(contain). 남는 여백은 같은 사진의 흐린 확대본으로 채움. */
+  @media (max-width: 1200px), (orientation: portrait) {
+    .slide-fill { display: block; }
+    .slide-art {
+      background-size: contain;
+      background-position: center 42%;
+    }
+    .slide.is-active .slide-art {
+      animation: none !important;
+      transform: none !important;
+    }
+  }
+
+  /* 큰 화면(사이니지 TV·데스크톱): 사진 비율이 화면과 크게 다르면 JS 가 .fit-contain 부여 */
   .slide.fit-contain .slide-fill { display: block; }
   .slide.fit-contain .slide-art {
     background-size: contain;
@@ -723,7 +736,7 @@
   }
   .slide.fit-contain.is-active .slide-art {
     animation: none !important;
-    transform: none !important;   /* contain 상태에서 확대되어 잘리는 것 방지 */
+    transform: none !important;
   }
 </style>
 
@@ -1293,13 +1306,13 @@ function buildSlides() {
           ${when ? `<span>${esc(when)}</span>` : ""}
         </div>
       </div>`;
-    // 배경(이미지 data URI / 그라디언트)은 속성 문자열이 아니라 DOM 프로퍼티로 지정
-    // — data URI 안의 따옴표가 style 속성을 깨뜨리는 문제 방지
+    // background-image 만 지정 (background 단축속성은 CSS 의 background-size:contain/cover 를
+    // auto 로 덮어써서 모바일에서 이미지가 잘리는 원인이 됨)
     const bg = ev.art || PRESETS[0].css;
     const art = li.querySelector(".slide-art");
     const fill = li.querySelector(".slide-fill");
-    if (art) art.style.background = bg;
-    if (fill) fill.style.background = bg;
+    if (art) art.style.backgroundImage = bg;
+    if (fill) fill.style.backgroundImage = bg;
     fitSlideArt(li, ev);
     slidesEl.appendChild(li);
 
@@ -1543,9 +1556,10 @@ function selSwatch(i) {
   [...swatchesEl.children].forEach((c, k) => c.classList.toggle("sel", k === i));
 }
 function updateThumb() {
-  fThumb.style.background = formArt;
+  fThumb.style.backgroundImage = formArt;
   fThumb.style.backgroundSize = "cover";
   fThumb.style.backgroundPosition = "center";
+  fThumb.style.backgroundRepeat = "no-repeat";
 }
 
 function resetForm() {
