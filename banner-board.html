@@ -89,11 +89,26 @@
     .slide { transition-duration: .22s; }
   }
 
+  /* 흐린 배경 채움 — 사진을 화면에 다 담을 때(contain) 생기는 여백을 자연스럽게 메움.
+     가로 화면에서는 slide-art 가 화면을 꽉 채우므로 렌더링하지 않음(아래 미디어쿼리에서 활성) */
+  .slide-fill {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transform: scale(1.2);
+    filter: blur(26px) saturate(1.15) brightness(.5);
+    will-change: transform;
+  }
+
   .slide-art {
     position: absolute;
     inset: 0;
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
     transform: scale(1.001);
     will-change: transform;
   }
@@ -698,6 +713,20 @@
     .slide-title { font-size: clamp(1.9rem, 6.5vw, 4.2rem); }
     .slide-body { max-width: 100%; }
   }
+
+  /* 화면 비율과 사진 비율이 크게 다를 때(주로 세로 폰·태블릿):
+     사진을 잘라내지 않고 전체가 보이도록 맞추고, 여백은 흐린 배경으로 채움 */
+  @media (orientation: portrait), (max-aspect-ratio: 12 / 10) {
+    .slide-fill { display: block; }
+    .slide-art {
+      background-size: contain;
+      background-position: center 42%;
+    }
+    .slide.is-active .slide-art {
+      animation: none !important;
+      transform: none !important;   /* contain 상태에서 확대되어 잘리는 것 방지 */
+    }
+  }
 </style>
 
 <div class="stage" id="stage" aria-label="행사 안내 슬라이드">
@@ -1249,6 +1278,7 @@ function buildSlides() {
 
     const when = ev.eventStart ? fmtWhen(ev.eventStart) : "";
     li.innerHTML = `
+      <div class="slide-fill"></div>
       <div class="slide-art"></div>
       <div class="slide-watermark" aria-hidden="true">${esc(ev.category || "")}</div>
       <div class="slide-body">
@@ -1265,8 +1295,11 @@ function buildSlides() {
       </div>`;
     // 배경(이미지 data URI / 그라디언트)은 속성 문자열이 아니라 DOM 프로퍼티로 지정
     // — data URI 안의 따옴표가 style 속성을 깨뜨리는 문제 방지
+    const bg = ev.art || PRESETS[0].css;
     const art = li.querySelector(".slide-art");
-    if (art) art.style.background = ev.art || PRESETS[0].css;
+    const fill = li.querySelector(".slide-fill");
+    if (art) art.style.background = bg;
+    if (fill) fill.style.background = bg;
     slidesEl.appendChild(li);
 
     const dot = document.createElement("button");
