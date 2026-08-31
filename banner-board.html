@@ -1107,7 +1107,7 @@ function buildSlides() {
 
     const when = ev.eventStart ? fmtWhen(ev.eventStart) : "";
     li.innerHTML = `
-      <div class="slide-art" style="background:${ev.art}"></div>
+      <div class="slide-art"></div>
       <div class="slide-watermark" aria-hidden="true">${esc(ev.category || "")}</div>
       <div class="slide-body">
         <div class="slide-meta">
@@ -1122,6 +1122,10 @@ function buildSlides() {
           ${ev.place ? `<span class="slide-place">${esc(ev.place)}</span>` : ""}
         </div>
       </div>`;
+    // 배경(이미지 data URI / 그라디언트)은 속성 문자열이 아니라 DOM 프로퍼티로 지정
+    // — data URI 안의 따옴표가 style 속성을 깨뜨리는 문제 방지
+    const art = li.querySelector(".slide-art");
+    if (art) art.style.background = ev.art || PRESETS[0].css;
     slidesEl.appendChild(li);
 
     const dot = document.createElement("button");
@@ -1352,14 +1356,20 @@ function fileToArt(file) {
       const img = new Image();
       img.onerror = reject;
       img.onload = () => {
-        const max = 1600;
-        const scale = Math.min(1, img.width ? max / img.width : 1);
+        // 긴 변 기준 최대 1920px 로 자동 축소(가로·세로 사진 모두 대응, 비율 유지)
+        const MAX = 1920;
+        const long = Math.max(img.width, img.height) || 1;
+        const scale = Math.min(1, MAX / long);
         const w = Math.max(1, Math.round(img.width * scale));
         const h = Math.max(1, Math.round(img.height * scale));
         const c = document.createElement("canvas");
         c.width = w; c.height = h;
-        c.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve('url("' + c.toDataURL("image/jpeg", 0.82) + '")');
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#0b0e14";          // 투명 PNG 가 흰색으로 채워지지 않도록
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        // 작은따옴표로 감싸 style 속성/프로퍼티 어느 쪽에서도 안전하게
+        resolve("url('" + c.toDataURL("image/jpeg", 0.82) + "')");
       };
       img.src = reader.result;
     };
