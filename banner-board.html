@@ -1559,36 +1559,58 @@ function resetForm() {
   fSubmit.textContent = "추가";
 }
 
-function fileToArt(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        // 긴 변 기준 최대 1920px 로 자동 축소(가로·세로 사진 모두 대응, 비율 유지)
-        const MAX = 1920;
-        const long = Math.max(img.width, img.height) || 1;
-        const scale = Math.min(1, MAX / long);
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
-        const c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        const ctx = c.getContext("2d");
-        ctx.fillStyle = "#0b0e14";          // 투명 PNG 가 흰색으로 채워지지 않도록
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        // 작은따옴표로 감싸 style 속성/프로퍼티 어느 쪽에서도 안전하게
-        resolve({
-          css: "url('" + c.toDataURL("image/jpeg", 0.82) + "')",
-          ratio: w / Math.max(1, h),
-        });
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
+// 첨부한 이미지를 자동으로 축소·압축한다.
+//  - createImageBitmap 우선(대용량 폰 사진·EXIF 회전에 안정적), 실패 시 <img> 폴백
+//  - 긴 변 목표 1600px, 결과 용량이 목표보다 크면 품질·크기를 단계적으로 더 낮춤
+async function fileToArt(file) {
+  const TARGET_LONG = 1600;
+  const MAX_BYTES = 900 * 1024;     // 데이터URI 인코딩 후 대략 이 용량 이하를 목표
+  const OVER = MAX_BYTES * 1.37;    // base64 오버헤드 감안
+
+  let src, ow, oh, closeable = null;
+  try {
+    const bmp = await createImageBitmap(file);
+    src = bmp; ow = bmp.width; oh = bmp.height; closeable = bmp;
+  } catch (e) {
+    const dataUrl = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onerror = () => rej(new Error("read"));
+      r.onload = () => res(r.result);
+      r.readAsDataURL(file);
+    });
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onerror = () => rej(new Error("decode"));
+      i.onload = () => res(i);
+      i.src = dataUrl;
+    });
+    src = img;
+    ow = img.naturalWidth || img.width;
+    oh = img.naturalHeight || img.height;
+  }
+  if (!ow || !oh) throw new Error("empty");
+  const ratio = ow / Math.max(1, oh);
+
+  function encode(longEdge, quality) {
+    const s = Math.min(1, longEdge / Math.max(ow, oh));
+    const w = Math.max(1, Math.round(ow * s));
+    const h = Math.max(1, Math.round(oh * s));
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#0b0e14";      // 투명 영역이 흰색으로 채워지지 않도록
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(src, 0, 0, w, h);
+    return c.toDataURL("image/jpeg", quality);
+  }
+
+  let out = encode(TARGET_LONG, 0.82);
+  if (out.length > OVER) out = encode(TARGET_LONG, 0.70);
+  if (out.length > OVER) out = encode(1280, 0.68);
+  if (out.length > OVER) out = encode(1024, 0.62);
+
+  if (closeable && closeable.close) { try { closeable.close(); } catch (e) {} }
+  return { css: "url('" + out + "')", ratio: ratio };
 }
 
 function renderAdminList() {
@@ -1702,14 +1724,17 @@ fTitle.addEventListener("keydown", (e) => {
 fImage.addEventListener("change", async () => {
   const f = fImage.files && fImage.files[0];
   if (!f) return;
+  showMsg("이미지 최적화 중…");
   try {
     const res = await fileToArt(f);
     formArt = res.css;
     formArtRatio = res.ratio;
     selSwatch(-1);
     updateThumb();
+    const kb = Math.round((res.css.length * 0.72) / 1024);
+    showMsg("이미지 적용됨 — 약 " + kb + "KB 로 자동 축소했습니다");
   } catch (err) {
-    showMsg("이미지를 불러오지 못했습니다. (아이폰 HEIC 사진이면 '설정 → 카메라 → 포맷 → 호환성 우선'으로 바꾸거나 JPG로 저장해 주세요)");
+    showMsg("이미지를 불러오지 못했습니다. 아이폰 HEIC 사진이면 JPG로 저장 후 다시 시도해 주세요.");
     fImage.value = "";
   }
 });
