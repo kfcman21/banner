@@ -810,7 +810,8 @@
       flex-wrap: wrap;
       bottom: calc(6.6rem + env(safe-area-inset-bottom, 0px));
     }
-    .slide-body { padding-bottom: calc(6.4rem + env(safe-area-inset-bottom, 0px)); }
+    /* 버튼 줄(6.6rem)+버튼 높이(약 2rem) 위로 본문이 끝나야 D-day 칩과 겹치지 않음 */
+    .slide-body { padding-bottom: calc(9.2rem + env(safe-area-inset-bottom, 0px)); }
   }
 
   /* 가로 폭이 아주 좁을 때 워터마크가 본문을 가리지 않도록 */
@@ -839,6 +840,16 @@
       transform: none !important;
     }
   }
+
+  /* ▶ 흐린 사진 채움을 끄는 경우 — 사진 평균색 단색 레터박스로 대체(JS 가 .slide 에 색 지정)
+     이유: blur 이 통째로 무시되는 엔진(구형 삼성 인터넷·저사양 기기)에서는 흐린 배경이
+     "확대된 같은 사진"으로 그대로 그려져 배경이미지가 두 장 겹쳐 보인다.
+     - 터치 기기는 무조건 끔(겹침 방지 + 전체화면 blur 은 저사양에서 무겁다)
+     - pointer 미디어쿼리를 모르는 엔진은 JS 감지가 html.no-blurfill 로 잡는다 */
+  @media (pointer: coarse) {
+    .slide-fill { display: none !important; }
+  }
+  .no-blurfill .slide-fill { display: none !important; }
 
   /* 큰 화면(사이니지 TV·데스크톱): 사진 비율이 화면과 크게 다르면 JS 가 .fit-contain 부여 */
   .slide.fit-contain .slide-fill { display: block; }
@@ -953,7 +964,7 @@
       .arrow { display: none; }
       .chrome { bottom: 4.1rem; }
       .toolbar { left: 0; right: 0; bottom: 6.6rem; justify-content: center; }
-      .slide-body { padding: 1.2rem 1.2rem 6.4rem; }
+      .slide-body { padding: 1.2rem 1.2rem 9.2rem; }
     }
   }
 
@@ -961,7 +972,15 @@
      제목·여백을 줄여 배경 이미지와 글자가 겹치지 않게. clamp 없이 고정값이라
      구형 삼성 인터넷에서도 그대로 적용된다. */
   @media (max-height: 480px) {
-    .slide-body { padding: .9rem 1.1rem 3.6rem; }
+    /* 버튼 줄(2.9rem)+버튼 높이(약 2rem) 위에서 본문이 끝나야 D-day 칩과 안 겹침.
+       또 이 높이에서는 사진(contain)이 화면을 거의 다 채워 글자가 사진 위에 얹히므로,
+       왼쪽에만 어둡게 깔리고 오른쪽으로 사라지는 판을 둬 겹쳐도 읽히게 한다. */
+    .slide-body {
+      padding: .9rem 1.1rem 5.4rem;
+      max-width: 62%;
+      background-image: linear-gradient(90deg,
+        rgba(9, 11, 16, .93) 0%, rgba(9, 11, 16, .86) 46%, rgba(9, 11, 16, .5) 78%, rgba(9, 11, 16, 0) 100%);
+    }
     .slide-title { font-size: 1.45rem; line-height: 1.22; }
     .slide-meta .chip, .slide-meta .tier { font-size: .68rem; padding: .18em .6em; }
     .slide-when { font-size: .82rem; }
@@ -1013,6 +1032,19 @@
     d.addEventListener("DOMContentLoaded", setH);
     setTimeout(setH, 0);
   }
+
+  // 4) 흐린 배경(filter: blur) 을 믿을 수 있는 엔진인지
+  //    구형 삼성 인터넷/저사양 기기는 전체화면 blur 레이어를 통째로 무시해 버려서
+  //    흐린 배경이 "확대된 원본 사진"으로 그려진다 → 배경이미지가 두 장 겹쳐 보임.
+  //    이런 환경에서는 흐린 채움 대신 사진 평균색 단색 레터박스를 쓴다.
+  var okBlur = false;
+  try {
+    okBlur = !!(window.CSS && CSS.supports &&
+      (CSS.supports("filter", "blur(4px)") || CSS.supports("-webkit-filter", "blur(4px)")));
+  } catch (e) {}
+  var sbv = /SamsungBrowser\/(\d+)/.exec(navigator.userAgent || "");
+  var lowMem = (navigator.deviceMemory || 8) <= 2;
+  if (!okBlur || lowMem || (sbv && +sbv[1] < 15) || cls.indexOf("no-flexgap") >= 0) cls.push("no-blurfill");
 
   if (cls.length) root.className += (root.className ? " " : "") + cls.join(" ");
 })();
@@ -1907,6 +1939,7 @@ function buildSlides() {
       const fillm = li.querySelector(".slide-fill");
       if (artm) artm.style.backgroundImage = bgm;
       if (fillm) fillm.style.backgroundImage = bgm;
+      tintSlide(li, ev);
       slidesEl.appendChild(li);
       const dotm = document.createElement("button");
       dotm.type = "button";
@@ -1940,6 +1973,7 @@ function buildSlides() {
     if (art) art.style.backgroundImage = bg;
     if (fill) fill.style.backgroundImage = bg;
     fitSlideArt(li, ev);
+    tintSlide(li, ev);
     slidesEl.appendChild(li);
 
     const dot = document.createElement("button");
@@ -2015,6 +2049,45 @@ function fitSlideArt(li, ev) {
 }
 function refitAll() {
   slides().forEach((li, i) => { if (list[i]) fitSlideArt(li, list[i]); });
+}
+
+/* ---------- 레터박스 색 — 사진 평균색을 어둡게 깔아 위아래 여백을 자연스럽게 ----------
+   흐린 사진 채움(.slide-fill)을 쓰지 않는 환경(터치 기기·구형 삼성 인터넷)에서
+   여백이 시커멓게 뜨지 않도록. 사진 한 장만 보이므로 겹쳐 보이는 일이 없다. */
+const _tintCache = {};
+function tintSlide(li, ev) {
+  const m = /url\(\s*['"]?(.*?)['"]?\s*\)/i.exec(ev.art || "");
+  if (!m) { li.style.backgroundColor = ""; return; }   // 그라디언트 → 여백 자체가 없음
+  const src = m[1];
+  const cached = ev.artTint || _tintCache[src];
+  if (cached) { ev.artTint = cached; li.style.backgroundColor = cached; return; }
+
+  const im = new Image();
+  let done = false;
+  const give = (c) => {
+    if (done) return;
+    done = true;
+    if (!c) return;
+    _tintCache[src] = c;
+    ev.artTint = c;
+    li.style.backgroundColor = c;
+  };
+  setTimeout(() => give(null), 4000);   // 구형 기기에서 영영 안 끝나는 경우 대비
+  im.onload = () => {
+    try {
+      const cv = document.createElement("canvas");
+      cv.width = cv.height = 8;
+      const cx = cv.getContext("2d");
+      cx.drawImage(im, 0, 0, 8, 8);
+      const d = cx.getImageData(0, 0, 8, 8).data;
+      let r = 0, g = 0, b = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+      const n = d.length / 4, k = 0.42;   // 글자가 읽히도록 충분히 어둡게
+      give("rgb(" + Math.round(r / n * k) + "," + Math.round(g / n * k) + "," + Math.round(b / n * k) + ")");
+    } catch (e) { give(null); }           // 캔버스 오염(외부 도메인 사진) → 기본 배경 유지
+  };
+  im.onerror = () => give(null);
+  im.src = src;
 }
 let _fitTimer = null;
 window.addEventListener("resize", () => {
