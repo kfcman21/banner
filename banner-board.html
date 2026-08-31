@@ -620,7 +620,7 @@
   }
   .fld input[type="file"] { padding: .45em .5em; color: var(--ink-dim); }
   .fld .sub-hint { font-size: .72rem; color: var(--ink-faint); }
-  .fld-row { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+  .fld-row { display: grid; grid-template-columns: 1fr 1fr; grid-gap: .7rem; gap: .7rem; }
   .fld-check { flex-direction: row; align-items: center; gap: .5rem; }
   .fld-check input { width: 16px; height: 16px; accent-color: var(--normal); }
   .fld-check label { font-size: .82rem; color: #fff; }
@@ -793,7 +793,63 @@
     .setbox > * + *,
     .admin-list > * + * { margin-top: .8rem; }
     .fld > * + * { margin-top: .32rem; }
-    .doc, .stage { }
+  }
+
+  /* ============ 구형 삼성 인터넷/삼성 브라우저 (Chromium < 79): ============
+     clamp() / min() / max() 미지원 → 선언 자체가 무시됨. 고정값으로 폴백.
+     또한 저사양 기기 최적화: 흐린 배경 blur 제거(단색 레터박스), 켄번즈/전환 최소화. */
+  @supports not (width: min(1px, 1px)) {
+    html, body { height: 100%; }
+    .stage { height: 100%; }
+
+    .topbar { padding: 1rem 1.5rem; font-size: 1rem; }
+    .brand { font-size: 1.05rem; }
+    .now { font-size: .95rem; }
+
+    .slide-body { padding: 1.8rem; padding-bottom: 5.2rem; max-width: 100%; }
+    .slide-title { font-size: 2.3rem; }
+    .slide-meta .chip { font-size: .82rem; padding: .3em .8em; }
+    .slide-meta .tier { font-size: .78rem; padding: .32em .8em; }
+    .slide-when { font-size: 1.05rem; }
+    .slide-dday { font-size: 1rem; }
+    .slide-watermark { font-size: 38vw; }
+
+    .progress { height: 5px; }
+    .chrome { bottom: 4.4rem; }
+    .arrow { width: 3rem; height: 3rem; font-size: 1.5rem; }
+    .dot { width: 9px; height: 9px; }
+    .counter { font-size: .9rem; }
+
+    .toolbar { bottom: 4.4rem; left: 1.5rem; }
+    .tbtn { font-size: .78rem; padding: .55em 1em; }
+
+    .footer { height: 3.4rem; padding: 0 1.5rem; font-size: .92rem; }
+    .foot-next { max-width: 40%; }
+
+    .pausebadge, .exithint { font-size: .8rem; padding: .5em 1.1em; }
+    .empty-title { font-size: 1.8rem; }
+    .empty-mark { font-size: 3.2rem; }
+
+    .admin { width: 92%; max-width: 460px; }
+    .admin-head h2 { font-size: 1.15rem; }
+    .admin-body { padding: 1.1rem 1.1rem 2rem; }
+    .fld input[type="text"],
+    .fld input[type="number"],
+    .fld input[type="datetime-local"],
+    .fld input[type="file"],
+    .fld textarea,
+    .fld select,
+    .admin-gate input { font-size: 15px; }
+    .btn { padding: .55em 1.1em; }
+    .swatch { width: 40px; height: 26px; }
+    .thumb { height: 88px; }
+
+    /* 저사양 기기: 전체화면 blur 제거 → 단색 레터박스, 애니메이션 최소화 */
+    .slide-fill { display: none !important; }
+    .slide { background: #0b0e14; transition: opacity .25s linear; }
+    .slide.is-active .slide-art { -webkit-animation: none !important; animation: none !important; -webkit-transform: none !important; transform: none !important; }
+    .slide.is-active .slide-body { -webkit-animation: none !important; animation: none !important; }
+    .ticker-track { -webkit-animation-duration: 60s; animation-duration: 60s; }
   }
 </style>
 
@@ -960,6 +1016,31 @@
 </div>
 
 <script>
+/* ---- 아주 구형 브라우저용 최소 폴리필 (구형 삼성 인터넷/삼성 브라우저) ---- */
+if (!String.prototype.padStart) {
+  String.prototype.padStart = function (len, pad) {
+    var s = String(this);
+    len = len >> 0;
+    pad = pad === undefined ? " " : String(pad);
+    if (s.length >= len || !pad) return s;
+    var need = len - s.length, full = "";
+    while (full.length < need) full += pad;
+    return full.slice(0, need) + s;
+  };
+}
+if (typeof Object.assign !== "function") {
+  Object.assign = function (t) {
+    for (var i = 1; i < arguments.length; i++) {
+      var s = arguments[i]; if (!s) continue;
+      for (var k in s) if (Object.prototype.hasOwnProperty.call(s, k)) t[k] = s[k];
+    }
+    return t;
+  };
+}
+if (!window.requestAnimationFrame) {
+  window.requestAnimationFrame = function (cb) { return setTimeout(function () { cb(Date.now()); }, 16); };
+}
+
 /* =========================================================================
    행사 안내 전광판
    · 입력 화면은 단축키 Alt+A 로만 엽니다(화면에 버튼 없음). 복구는 주소 끝 #reset.
