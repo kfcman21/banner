@@ -96,23 +96,11 @@
     .slide { transition-duration: .22s; }
   }
 
-  /* 흐린 배경 채움 — 사진을 화면에 다 담을 때(contain) 생기는 여백을 자연스럽게 메움.
-     가로 화면에서는 slide-art 가 화면을 꽉 채우므로 렌더링하지 않음(아래 미디어쿼리에서 활성) */
-  .slide-fill {
-    display: none;
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    transform: scale(1.2);
-    -webkit-filter: blur(26px) saturate(1.15) brightness(.5);
-    filter: blur(26px) saturate(1.15) brightness(.5);
-    will-change: transform;
-  }
+  /* 사진을 화면에 다 담을 때(contain) 생기는 여백은 사진의 평균색으로 메운다
+     (JS 의 tintSlide 가 .slide 에 배경색 지정).
+     예전에는 같은 사진을 1.2배로 깔고 blur 로 감춰 여백을 메웠는데, blur 을 무시하는
+     엔진(구형 삼성 인터넷·저사양 기기)에서 그 확대본이 그대로 드러나 배경이미지가
+     두 장 겹쳐 보였다. 그래서 사진 레이어는 .slide-art 하나만 둔다. */
 
   .slide-art {
     position: absolute;
@@ -826,11 +814,10 @@
   }
 
   /* ▶ 모바일·태블릿(가로·세로 모두): 배경 이미지를 잘라내지 않고 전체가 화면에
-     보이도록 자동으로 맞춤(contain). 남는 여백은 같은 사진의 흐린 확대본으로 채움.
+     보이도록 자동으로 맞춤(contain). 남는 여백은 사진 평균색으로 채움.
      - 터치 기기(pointer: coarse)는 방향과 무관하게 적용 → 태블릿 가로모드 포함
      - 작은 화면 / 세로 화면도 포함 */
   @media (max-width: 1400px), (pointer: coarse), (orientation: portrait) {
-    .slide-fill { display: block; }
     .slide-art {
       background-size: contain;
       background-position: center 42%;
@@ -841,18 +828,7 @@
     }
   }
 
-  /* ▶ 흐린 사진 채움을 끄는 경우 — 사진 평균색 단색 레터박스로 대체(JS 가 .slide 에 색 지정)
-     이유: blur 이 통째로 무시되는 엔진(구형 삼성 인터넷·저사양 기기)에서는 흐린 배경이
-     "확대된 같은 사진"으로 그대로 그려져 배경이미지가 두 장 겹쳐 보인다.
-     - 터치 기기는 무조건 끔(겹침 방지 + 전체화면 blur 은 저사양에서 무겁다)
-     - pointer 미디어쿼리를 모르는 엔진은 JS 감지가 html.no-blurfill 로 잡는다 */
-  @media (pointer: coarse) {
-    .slide-fill { display: none !important; }
-  }
-  .no-blurfill .slide-fill { display: none !important; }
-
   /* 큰 화면(사이니지 TV·데스크톱): 사진 비율이 화면과 크게 다르면 JS 가 .fit-contain 부여 */
-  .slide.fit-contain .slide-fill { display: block; }
   .slide.fit-contain .slide-art {
     background-size: contain;
     background-position: center 42%;
@@ -942,8 +918,7 @@
     .swatch { width: 40px; height: 26px; }
     .thumb { height: 88px; }
 
-    /* 저사양 기기: 전체화면 blur 제거 → 단색 레터박스, 애니메이션 최소화 */
-    .slide-fill { display: none !important; }
+    /* 저사양 기기: 애니메이션·전환 최소화 */
     .slide { background: #0b0e14; transition: opacity .25s linear; }
     .slide.is-active .slide-art { -webkit-animation: none !important; animation: none !important; -webkit-transform: none !important; transform: none !important; }
     .slide.is-active .slide-body { -webkit-animation: none !important; animation: none !important; }
@@ -1032,19 +1007,6 @@
     d.addEventListener("DOMContentLoaded", setH);
     setTimeout(setH, 0);
   }
-
-  // 4) 흐린 배경(filter: blur) 을 믿을 수 있는 엔진인지
-  //    구형 삼성 인터넷/저사양 기기는 전체화면 blur 레이어를 통째로 무시해 버려서
-  //    흐린 배경이 "확대된 원본 사진"으로 그려진다 → 배경이미지가 두 장 겹쳐 보임.
-  //    이런 환경에서는 흐린 채움 대신 사진 평균색 단색 레터박스를 쓴다.
-  var okBlur = false;
-  try {
-    okBlur = !!(window.CSS && CSS.supports &&
-      (CSS.supports("filter", "blur(4px)") || CSS.supports("-webkit-filter", "blur(4px)")));
-  } catch (e) {}
-  var sbv = /SamsungBrowser\/(\d+)/.exec(navigator.userAgent || "");
-  var lowMem = (navigator.deviceMemory || 8) <= 2;
-  if (!okBlur || lowMem || (sbv && +sbv[1] < 15) || cls.indexOf("no-flexgap") >= 0) cls.push("no-blurfill");
 
   if (cls.length) root.className += (root.className ? " " : "") + cls.join(" ");
 })();
@@ -1919,7 +1881,6 @@ function buildSlides() {
     const when = ev.eventStart ? fmtWhen(ev.eventStart) : "";
     if (ev._kind === "meal") {
       li.innerHTML = `
-        <div class="slide-fill"></div>
         <div class="slide-art"></div>
         <div class="slide-watermark" aria-hidden="true">급식</div>
         <div class="slide-body">
@@ -1936,9 +1897,7 @@ function buildSlides() {
         </div>`;
       const bgm = ev.art || PRESETS[4].css;
       const artm = li.querySelector(".slide-art");
-      const fillm = li.querySelector(".slide-fill");
       if (artm) artm.style.backgroundImage = bgm;
-      if (fillm) fillm.style.backgroundImage = bgm;
       tintSlide(li, ev);
       slidesEl.appendChild(li);
       const dotm = document.createElement("button");
@@ -1950,7 +1909,6 @@ function buildSlides() {
       return;
     }
     li.innerHTML = `
-      <div class="slide-fill"></div>
       <div class="slide-art"></div>
       <div class="slide-watermark" aria-hidden="true">${esc(ev.category || "")}</div>
       <div class="slide-body">
@@ -1969,9 +1927,7 @@ function buildSlides() {
     // auto 로 덮어써서 모바일에서 이미지가 잘리는 원인이 됨)
     const bg = ev.art || PRESETS[0].css;
     const art = li.querySelector(".slide-art");
-    const fill = li.querySelector(".slide-fill");
     if (art) art.style.backgroundImage = bg;
-    if (fill) fill.style.backgroundImage = bg;
     fitSlideArt(li, ev);
     tintSlide(li, ev);
     slidesEl.appendChild(li);
@@ -2051,9 +2007,9 @@ function refitAll() {
   slides().forEach((li, i) => { if (list[i]) fitSlideArt(li, list[i]); });
 }
 
-/* ---------- 레터박스 색 — 사진 평균색을 어둡게 깔아 위아래 여백을 자연스럽게 ----------
-   흐린 사진 채움(.slide-fill)을 쓰지 않는 환경(터치 기기·구형 삼성 인터넷)에서
-   여백이 시커멓게 뜨지 않도록. 사진 한 장만 보이므로 겹쳐 보이는 일이 없다. */
+/* ---------- 레터박스 색 — 사진 평균색을 어둡게 깔아 남는 여백을 자연스럽게 ----------
+   사진(contain)이 화면을 다 못 채울 때 생기는 여백을 메운다. 화면에 그려지는 사진
+   레이어는 .slide-art 하나뿐이라 어떤 엔진에서도 겹쳐 보일 수 없다. */
 const _tintCache = {};
 function tintSlide(li, ev) {
   const m = /url\(\s*['"]?(.*?)['"]?\s*\)/i.exec(ev.art || "");
