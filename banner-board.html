@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>행사 안내 전광판</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090B10">
@@ -294,6 +295,56 @@
     font-variant-numeric: tabular-nums;
     letter-spacing: .04em;
   }
+
+  /* ---------- 미세먼지 칩 (상단바) ---------- */
+  .airwrap { display: flex; align-items: center; gap: .45em; }
+  .airchip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4em;
+    padding: .2em .68em;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .07);
+    font-size: .92em;
+    line-height: 1.6;
+    white-space: nowrap;
+  }
+  .airchip .adot { width: .6em; height: .6em; border-radius: 50%; background: var(--normal); flex: none; }
+  .airchip .alab { color: var(--ink-dim); }
+  .airchip .aval {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    font-weight: 500;
+  }
+  .airchip .agrade { color: #fff; }
+
+  /* ---------- 급식 슬라이드 ---------- */
+  .meal-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35em .85em;
+    max-width: 20ch;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: clamp(1.15rem, 3.1vw, 2.35rem);
+    line-height: 1.45;
+    color: #fff;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, .55);
+  }
+  .meal-list li { display: inline-block; }
+  /* 구분점은 앞 항목에 붙여 둔다 — 줄바꿈될 때 점이 줄 앞으로 내려오지 않게 */
+  .meal-list li:not(:last-child)::after {
+    content: "·";
+    color: var(--ink-faint);
+    margin-left: .5em;
+    font-weight: 400;
+  }
+  .meal-kcal { font-family: var(--font-mono); color: var(--ink-dim); }
 
   /* ---------- chrome (arrows + dots) ---------- */
   .chrome {
@@ -683,6 +734,14 @@
     border-bottom: 1px solid var(--line);
   }
 
+  .setbox-h {
+    margin: 0;
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--ink-dim);
+  }
+
   .admin-msg { margin: .2rem 0 0; min-height: 1.1em; font-size: .8rem; color: var(--normal); }
   .sync-msg { margin: .1rem 0 0; min-height: 1em; font-size: .74rem; color: var(--ink-faint); }
 
@@ -734,6 +793,8 @@
     .footer { gap: .7rem; font-size: .82rem; }
     .foot-next { max-width: 46vw; }
     .brand, .now { white-space: nowrap; }
+    .airchip .alab { display: none; }
+    .meal-list { max-width: 100%; }
     .date { display: none; }        /* 좁은 화면에서는 시계만 */
   }
 
@@ -964,6 +1025,7 @@
       <span class="bname" id="brandName">○○고등학교</span><span class="btag" id="brandTag">행사 안내</span>
     </div>
     <div class="now" aria-hidden="true">
+      <span class="airwrap" id="airWrap"></span>
       <span class="date" id="date"></span>
       <span class="clock" id="clock"></span>
     </div>
@@ -1046,6 +1108,65 @@
         </div>
         <p class="hint">상단 바와 빈 화면에 표시되는 문구입니다. 입력하면 바로 반영·저장됩니다.</p>
         <p class="sync-msg" id="syncMsg" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="setbox">
+        <h3 class="setbox-h">외부 연동 — 미세먼지 · 급식</h3>
+
+        <div class="fld fld-check">
+          <input type="checkbox" id="fShowAir">
+          <label for="fShowAir">상단 바에 미세먼지 표시</label>
+        </div>
+        <div class="fld">
+          <label for="fAirKey">에어코리아 인증키 <span class="sub-hint">(공공데이터포털 · 일반 인증키)</span></label>
+          <input type="password" id="fAirKey" autocomplete="off" placeholder="Decoding 키 권장">
+        </div>
+        <div class="fld-row">
+          <div class="fld">
+            <label for="fAirSido">시·도</label>
+            <select id="fAirSido">
+              <option>서울</option><option>부산</option><option>대구</option><option>인천</option>
+              <option>광주</option><option>대전</option><option>울산</option><option>세종</option>
+              <option>경기</option><option>강원</option><option>충북</option><option>충남</option>
+              <option>전북</option><option>전남</option><option>경북</option><option>경남</option>
+              <option>제주</option>
+            </select>
+          </div>
+          <div class="fld">
+            <label for="fAirStation">측정소</label>
+            <input type="text" id="fAirStation" list="airStationList" placeholder="예: 강남구">
+            <datalist id="airStationList"></datalist>
+          </div>
+        </div>
+        <div class="admin-actions">
+          <button class="btn ghost" type="button" id="airStnBtn">측정소 목록 불러오기</button>
+          <button class="btn ghost" type="button" id="airTestBtn">지금 조회</button>
+        </div>
+        <p class="sync-msg" id="airMsg" role="status" aria-live="polite"></p>
+
+        <div class="fld fld-check">
+          <input type="checkbox" id="fShowMeal">
+          <label for="fShowMeal">오늘의 급식 슬라이드 표시</label>
+        </div>
+        <div class="fld">
+          <label for="fNeisKey">나이스(NEIS) 인증키 <span class="sub-hint">(open.neis.go.kr)</span></label>
+          <input type="password" id="fNeisKey" autocomplete="off" placeholder="인증키">
+        </div>
+        <div class="fld">
+          <label for="fSchoolQ">학교 검색</label>
+          <input type="text" id="fSchoolQ" placeholder="예: 문백초">
+        </div>
+        <div class="fld">
+          <select id="fSchoolPick"><option value="">— 검색 결과 —</option></select>
+        </div>
+        <div class="admin-actions">
+          <button class="btn ghost" type="button" id="schoolSearchBtn">학교 찾기</button>
+          <button class="btn ghost" type="button" id="mealTestBtn">급식 지금 조회</button>
+        </div>
+        <p class="sync-msg" id="mealMsg" role="status" aria-live="polite"></p>
+
+        <p class="hint">인증키는 이 브라우저와 서버에만 저장되고 소스코드에는 남지 않습니다.
+        미세먼지는 10분마다, 급식은 30분마다 자동으로 새로 불러옵니다.</p>
       </div>
 
       <form id="adminForm">
@@ -1310,6 +1431,17 @@ const gatePw = document.getElementById("gatePw");
 const gateBtn = document.getElementById("gateBtn");
 const gateErr = document.getElementById("gateErr");
 
+const airWrap = document.getElementById("airWrap");
+const fShowAir = document.getElementById("fShowAir");
+const fAirKey = document.getElementById("fAirKey");
+const fAirSido = document.getElementById("fAirSido");
+const fAirStation = document.getElementById("fAirStation");
+const airStationList = document.getElementById("airStationList");
+const fShowMeal = document.getElementById("fShowMeal");
+const fNeisKey = document.getElementById("fNeisKey");
+const fSchoolQ = document.getElementById("fSchoolQ");
+const fSchoolPick = document.getElementById("fSchoolPick");
+
 const brandNameEl = document.getElementById("brandName");
 const brandTagEl = document.getElementById("brandTag");
 const emptyTitleEl = emptyEl.querySelector(".empty-title");
@@ -1356,6 +1488,16 @@ const DEFAULT_SETTINGS = {
   schoolName: CONFIG.schoolName,
   tagline: CONFIG.tagline,
   emptyText: "지금 예정된 행사가 없습니다",
+  // 외부 연동 — 미세먼지(에어코리아) · 급식(나이스)
+  showAir: false,
+  airKey: "",
+  airSido: "서울",
+  airStation: "",
+  showMeal: false,
+  neisKey: "",
+  atptCode: "",
+  neisSchoolCode: "",
+  neisSchoolName: "",
 };
 let settings = Object.assign({}, DEFAULT_SETTINGS, loadSettings());
 
@@ -1496,6 +1638,248 @@ let elapsedBeforePause = 0;
 let formArt = PRESETS[0].css;
 let formArtRatio = null;   // 업로드 사진의 가로/세로 비율 (그라디언트면 null)
 
+
+/* =========================================================================
+   외부 연동 — 미세먼지(에어코리아) · 급식(나이스 교육정보 개방포털)
+   두 API 모두 CORS 를 허용하므로 브라우저에서 바로 호출합니다.
+   인증키는 settings 에만 저장되고 소스코드에는 들어가지 않습니다.
+   ========================================================================= */
+
+const AIR_BASE = "https://apis.data.go.kr/B552584";
+const NEIS_BASE = "https://open.neis.go.kr/hub";
+
+// 공공데이터포털 인증키는 Encoding/Decoding 두 종류가 있다.
+// 이미 퍼센트 인코딩된 키(%2B 등 포함)를 다시 인코딩하면 인증이 깨지므로 그대로 쓴다.
+function encKey(k) {
+  const v = String(k || "").trim();
+  return /%[0-9A-Fa-f]{2}/.test(v) ? v : encodeURIComponent(v);
+}
+function qs(o) {
+  const a = [];
+  for (const k in o) {
+    if (o[k] === undefined || o[k] === null || o[k] === "") continue;
+    a.push(encodeURIComponent(k) + "=" + encodeURIComponent(o[k]));
+  }
+  return a.join("&");
+}
+async function getJSON(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  const txt = await r.text();
+  try {
+    return JSON.parse(txt);
+  } catch (e) {
+    // 인증키 오류 등은 XML 로 돌아온다
+    const m = /<returnAuthMsg>([^<]*)<|<errMsg>([^<]*)</.exec(txt);
+    throw new Error(m ? (m[1] || m[2]) : "응답을 해석할 수 없습니다");
+  }
+}
+
+/* ---------- 미세먼지 ---------- */
+
+// 환경부 통합 기준 (㎍/㎥)
+const PM10_CUT = [30, 80, 150];
+const PM25_CUT = [15, 35, 75];
+const AIR_GRADE = [
+  { label: "좋음",     color: "#3B82F6" },
+  { label: "보통",     color: "#22A06B" },
+  { label: "나쁨",     color: "#F5A623" },
+  { label: "매우나쁨", color: "#F0432E" },
+];
+function gradeOf(v, cuts) {
+  if (v === null || v === undefined || v === "" || isNaN(v)) return null;
+  const n = Number(v);
+  for (let i = 0; i < cuts.length; i++) if (n <= cuts[i]) return i;
+  return 3;
+}
+
+let airData = null;      // { station, time, pm10, pm25 }
+
+function setAirMsg(t) {
+  const el = document.getElementById("airMsg");
+  if (el) el.textContent = t || "";
+}
+
+async function fetchAir() {
+  const st = (settings.airStation || "").trim();
+  if (!settings.showAir || !settings.airKey || !st) { airData = null; renderAir(); return null; }
+  const url = AIR_BASE + "/ArpltnInqirySvc/getMsrstnAcctoRltmMesureDnsty?serviceKey=" + encKey(settings.airKey) +
+    "&" + qs({ returnType: "json", numOfRows: 1, pageNo: 1, stationName: st, dataTerm: "DAILY", ver: "1.3" });
+  const j = await getJSON(url);
+  const items = (((j.response || {}).body || {}).items) || [];
+  const it = items[0];
+  if (!it) throw new Error("측정값이 없습니다 (측정소 이름을 확인해 주세요)");
+  const num = (v) => (v === "-" || v === undefined || v === null || v === "" ? null : Number(v));
+  airData = {
+    station: st,
+    time: it.dataTime || "",
+    pm10: num(it.pm10Value),
+    pm25: num(it.pm25Value),
+  };
+  renderAir();
+  return airData;
+}
+
+function chipHTML(label, value, gi) {
+  const g = AIR_GRADE[gi];
+  return '<span class="airchip" title="' + esc(label + " " + value + " ㎍/㎥ · " + g.label) + '">' +
+    '<span class="adot" style="background:' + g.color + '"></span>' +
+    '<span class="alab">' + esc(label) + '</span>' +
+    '<span class="aval">' + esc(String(value)) + '</span>' +
+    '<span class="agrade" style="color:' + g.color + '">' + esc(g.label) + '</span>' +
+    '</span>';
+}
+
+function renderAir() {
+  if (!airWrap) return;
+  if (!settings.showAir || !airData) { airWrap.innerHTML = ""; return; }
+  const g10 = gradeOf(airData.pm10, PM10_CUT);
+  const g25 = gradeOf(airData.pm25, PM25_CUT);
+  let h = "";
+  if (g10 !== null) h += chipHTML("미세", airData.pm10, g10);
+  if (g25 !== null) h += chipHTML("초미세", airData.pm25, g25);
+  airWrap.innerHTML = h;
+}
+
+async function refreshAir(loud) {
+  try {
+    const d = await fetchAir();
+    if (loud) setAirMsg(d ? ("불러옴 · " + d.station + " " + (d.time || "")) : "미세먼지 표시가 꺼져 있거나 설정이 비어 있습니다.");
+  } catch (e) {
+    airData = null;
+    renderAir();
+    if (loud) setAirMsg("⚠ " + e.message);
+  }
+}
+
+async function loadStations() {
+  if (!settings.airKey) { setAirMsg("에어코리아 인증키를 먼저 입력해 주세요."); return; }
+  setAirMsg("측정소를 불러오는 중…");
+  try {
+    const url = AIR_BASE + "/MsrstnInfoInqireSvc/getMsrstnList?serviceKey=" + encKey(settings.airKey) +
+      "&" + qs({ returnType: "json", numOfRows: 200, pageNo: 1, addr: settings.airSido || "서울" });
+    const j = await getJSON(url);
+    const items = (((j.response || {}).body || {}).items) || [];
+    airStationList.innerHTML = items.map((it) =>
+      '<option value="' + esc(it.stationName) + '">' + esc(it.addr || "") + '</option>').join("");
+    setAirMsg(items.length ? (items.length + "개 측정소를 불러왔습니다. 측정소 칸에서 고르세요.") : "측정소가 없습니다.");
+  } catch (e) {
+    setAirMsg("⚠ " + e.message);
+  }
+}
+
+/* ---------- 급식 ---------- */
+
+const MEAL_NAME = { "1": "조식", "2": "중식", "3": "석식" };
+let mealSlides = [];     // computeList 가 뒤에 붙이는 자동 슬라이드
+let mealDay = "";        // 마지막으로 불러온 날짜 (YYYYMMDD)
+
+function setMealMsg(t) {
+  const el = document.getElementById("mealMsg");
+  if (el) el.textContent = t || "";
+}
+function ymd(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return "" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate());
+}
+// "쌀밥 (1.5.6)<br/>미역국 (5.6)" -> ["쌀밥", "미역국"]
+function parseDish(raw) {
+  return String(raw || "")
+    .split(/<br\s*\/?>/i)
+    .map((x) => x.replace(/\([\d.\s]*\)/g, "").replace(/[\d.]+$/g, "").replace(/\*/g, "").trim())
+    .filter(Boolean);
+}
+
+async function fetchMeal() {
+  mealSlides = [];
+  if (!settings.showMeal || !settings.neisKey || !settings.atptCode || !settings.neisSchoolCode) return [];
+  const day = ymd(new Date());
+  mealDay = day;
+  const url = NEIS_BASE + "/mealServiceDietInfo?" + qs({
+    KEY: settings.neisKey, Type: "json", pIndex: 1, pSize: 10,
+    ATPT_OFCDC_SC_CODE: settings.atptCode,
+    SD_SCHUL_CODE: settings.neisSchoolCode,
+    MLSV_YMD: day,
+  });
+  const j = await getJSON(url);
+  if (j.RESULT && j.RESULT.CODE && j.RESULT.CODE !== "INFO-000") {
+    if (j.RESULT.CODE === "INFO-200") return [];      // 오늘 급식 없음 (주말·방학)
+    throw new Error(j.RESULT.MESSAGE || j.RESULT.CODE);
+  }
+  const rows = ((j.mealServiceDietInfo || [])[1] || {}).row || [];
+  mealSlides = rows.map((r, i) => {
+    const dishes = parseDish(r.DDISH_NM);
+    const kcal = String(r.CAL_INFO || "").trim();
+    const name = MEAL_NAME[String(r.MMEAL_SC_CODE)] || String(r.MMEAL_SC_NM || "급식").trim();
+    return {
+      id: "_meal" + day + "_" + (r.MMEAL_SC_CODE || i),
+      _kind: "meal",
+      title: "오늘의 급식 · " + name,
+      category: "급식",
+      tier: "normal",
+      note: kcal,
+      seconds: 12,
+      dishes: dishes,
+      kcal: kcal,
+      art: PRESETS[4].css,
+    };
+  }).filter((m) => m.dishes.length);
+  return mealSlides;
+}
+
+function mealSig() { return mealSlides.map((m) => m.id + "|" + m.dishes.join(",")).join("//"); }
+
+async function refreshMeal(loud) {
+  const before = mealSig();
+  try {
+    await fetchMeal();
+    if (loud) setMealMsg(mealSlides.length ? (mealSlides.length + "건을 불러왔습니다.") : "오늘은 급식 정보가 없습니다.");
+  } catch (e) {
+    mealSlides = [];
+    if (loud) setMealMsg("⚠ " + e.message);
+  }
+  if (before !== mealSig()) rebuildKeepPosition();
+}
+
+async function searchSchool() {
+  const q = (fSchoolQ.value || "").trim();
+  if (!settings.neisKey) { setMealMsg("나이스 인증키를 먼저 입력해 주세요."); return; }
+  if (!q) { setMealMsg("학교 이름을 입력해 주세요."); return; }
+  setMealMsg("찾는 중…");
+  try {
+    const j = await getJSON(NEIS_BASE + "/schoolInfo?" +
+      qs({ KEY: settings.neisKey, Type: "json", pIndex: 1, pSize: 30, SCHUL_NM: q }));
+    if (j.RESULT && j.RESULT.CODE && j.RESULT.CODE !== "INFO-000") {
+      setMealMsg(j.RESULT.CODE === "INFO-200" ? "검색 결과가 없습니다." : ("⚠ " + (j.RESULT.MESSAGE || j.RESULT.CODE)));
+      return;
+    }
+    const rows = ((j.schoolInfo || [])[1] || {}).row || [];
+    fSchoolPick.innerHTML = '<option value="">— ' + rows.length + '개 중 선택 —</option>' +
+      rows.map((r) => '<option value="' + esc(r.ATPT_OFCDC_SC_CODE + "|" + r.SD_SCHUL_CODE + "|" + r.SCHUL_NM) + '">' +
+        esc(r.SCHUL_NM + " (" + (r.ATPT_OFCDC_SC_NM || "") + ")") + '</option>').join("");
+    setMealMsg(rows.length + "개를 찾았습니다. 아래 목록에서 학교를 고르세요.");
+  } catch (e) {
+    setMealMsg("⚠ " + e.message);
+  }
+}
+
+/* ---------- 자동 슬라이드가 바뀌면 현재 위치를 지키며 다시 그리기 ---------- */
+function rebuildKeepPosition() {
+  const curId = (list[idx] || {}).id;
+  computeList();
+  buildSlides();
+  const has = list.length > 0;
+  emptyEl.hidden = has;
+  document.getElementById("chrome").style.display = has ? "" : "none";
+  footerEl.style.display = has ? "" : "none";
+  document.querySelector(".progress").style.display = has ? "" : "none";
+  let k = 0;
+  for (let i = 0; i < list.length; i++) if (list[i].id === curId) { k = i; break; }
+  idx = 0;
+  if (has) show(k, true);
+  syncPlay();
+}
+
 function computeList() {
   const now = Date.now();
   list = rawEvents
@@ -1507,6 +1891,8 @@ function computeList() {
       (a.eventStart ? new Date(a.eventStart).getTime() : 8.64e15) -
       (b.eventStart ? new Date(b.eventStart).getTime() : 8.64e15)
     );
+  // 오늘의 급식은 행사 뒤에 자동으로 덧붙인다 (저장되지 않는 임시 슬라이드)
+  if (settings.showMeal && mealSlides.length) list = list.concat(mealSlides);
 }
 
 function durMs(i) { return (((list[i] || 0).seconds) || CONFIG.slideSeconds) * 1000; }
@@ -1529,6 +1915,37 @@ function buildSlides() {
     li.setAttribute("aria-hidden", "true");
 
     const when = ev.eventStart ? fmtWhen(ev.eventStart) : "";
+    if (ev._kind === "meal") {
+      li.innerHTML = `
+        <div class="slide-fill"></div>
+        <div class="slide-art"></div>
+        <div class="slide-watermark" aria-hidden="true">급식</div>
+        <div class="slide-body">
+          <div class="slide-meta">
+            <span class="chip">🍚 급식</span>
+            <span class="tier normal"><span class="ico" aria-hidden="true">●</span>오늘</span>
+          </div>
+          <h2 class="slide-title">${esc(ev.title)}</h2>
+          <ul class="meal-list">${ev.dishes.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>
+          <div class="slide-when">
+            <span class="slide-dday">오늘</span>
+            ${ev.kcal ? `<span class="meal-kcal">${esc(ev.kcal)}</span>` : ""}
+          </div>
+        </div>`;
+      const bgm = ev.art || PRESETS[4].css;
+      const artm = li.querySelector(".slide-art");
+      const fillm = li.querySelector(".slide-fill");
+      if (artm) artm.style.backgroundImage = bgm;
+      if (fillm) fillm.style.backgroundImage = bgm;
+      slidesEl.appendChild(li);
+      const dotm = document.createElement("button");
+      dotm.type = "button";
+      dotm.className = "dot";
+      dotm.setAttribute("aria-label", `${i + 1}번째 슬라이드로 이동`);
+      dotm.addEventListener("click", () => { show(i); poke(); });
+      dotsEl.appendChild(dotm);
+      return;
+    }
     li.innerHTML = `
       <div class="slide-fill"></div>
       <div class="slide-art"></div>
@@ -1566,6 +1983,11 @@ function buildSlides() {
   // 하단 사이니지 티커: 전체 행사 요약을 흐르게
   const items = list.map((ev) => {
     const t = TIER[ev.tier] || TIER.normal;
+    if (ev._kind === "meal") {
+      return `<span class="tick"><span class="sq" style="background:${t.color}"></span>` +
+             `<span class="dday">🍚 ${esc(ev.title.replace("오늘의 급식 · ", ""))}</span>` +
+             `${esc(ev.dishes.join(" · "))}</span>`;
+    }
     return `<span class="tick"><span class="sq" style="background:${t.color}"></span>` +
            `<span class="dday">${esc(ddayLabel(ev))}</span>${esc(ev.title).replace(/\n/g, " ")}</span>`;
   }).join("");
@@ -2048,6 +2470,18 @@ function fillSettingsForm() {
   fEmpty.value = settings.emptyText || "";
   fPw.value = "";
   fPw.placeholder = settings.pwHash ? "설정됨 — 바꾸려면 새로 입력" : "설정하려면 입력";
+
+  fShowAir.checked = !!settings.showAir;
+  fAirKey.value = settings.airKey || "";
+  fAirSido.value = settings.airSido || "서울";
+  fAirStation.value = settings.airStation || "";
+  fShowMeal.checked = !!settings.showMeal;
+  fNeisKey.value = settings.neisKey || "";
+  if (settings.neisSchoolName) {
+    fSchoolPick.innerHTML = '<option value="' +
+      esc((settings.atptCode || "") + "|" + (settings.neisSchoolCode || "") + "|" + settings.neisSchoolName) +
+      '" selected>' + esc(settings.neisSchoolName) + " (현재 설정)</option>";
+  }
 }
 function initSettingsForm() {
   fillSettingsForm();
@@ -2076,6 +2510,40 @@ function initSettingsForm() {
     fPw.placeholder = settings.pwHash ? "설정됨 — 바꾸려면 새로 입력" : "설정하려면 입력";
     showMsg(v ? "비밀번호를 설정했습니다." : "비밀번호를 해제했습니다.");
   });
+
+  /* ---- 외부 연동 ---- */
+  const save = () => saveSettings();
+
+  fShowAir.addEventListener("change", () => {
+    settings.showAir = fShowAir.checked;
+    save();
+    if (settings.showAir) refreshAir(true); else { airData = null; renderAir(); }
+  });
+  fAirKey.addEventListener("change", () => { settings.airKey = fAirKey.value.trim(); save(); refreshAir(true); });
+  fAirSido.addEventListener("change", () => { settings.airSido = fAirSido.value; save(); });
+  fAirStation.addEventListener("change", () => { settings.airStation = fAirStation.value.trim(); save(); refreshAir(true); });
+  document.getElementById("airStnBtn").addEventListener("click", () => loadStations());
+  document.getElementById("airTestBtn").addEventListener("click", () => { setAirMsg("조회 중…"); refreshAir(true); });
+
+  fShowMeal.addEventListener("change", () => {
+    settings.showMeal = fShowMeal.checked;
+    save();
+    if (settings.showMeal) refreshMeal(true); else { mealSlides = []; rebuildKeepPosition(); }
+  });
+  fNeisKey.addEventListener("change", () => { settings.neisKey = fNeisKey.value.trim(); save(); });
+  document.getElementById("schoolSearchBtn").addEventListener("click", () => searchSchool());
+  fSchoolQ.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); searchSchool(); } });
+  fSchoolPick.addEventListener("change", () => {
+    const parts = (fSchoolPick.value || "").split("|");
+    if (parts.length < 3) return;
+    settings.atptCode = parts[0];
+    settings.neisSchoolCode = parts[1];
+    settings.neisSchoolName = parts[2];
+    save();
+    setMealMsg(settings.neisSchoolName + " 로 설정했습니다.");
+    refreshMeal(true);
+  });
+  document.getElementById("mealTestBtn").addEventListener("click", () => { setMealMsg("조회 중…"); refreshMeal(true); });
 }
 
 /* ---------- 조작 바인딩 ---------- */
@@ -2172,7 +2640,14 @@ poke();
   initSettingsForm();
   resetForm();
   renderAdminList();
+  // 급식은 슬라이드 목록에 들어가므로 먼저 불러온 뒤 화면을 그린다
+  try { await fetchMeal(); } catch (e) { mealSlides = []; }
   applyData();
+  refreshAir(false);
+
+  // 미세먼지 10분 · 급식 30분마다 갱신 (날짜가 바뀌면 급식도 새로)
+  setInterval(() => refreshAir(false), 10 * 60 * 1000);
+  setInterval(() => { if (settings.showMeal) refreshMeal(false); }, 30 * 60 * 1000);
 
   if (gotServer && !serverHadEvents && hadLocalEvents) {
     // 서버에 아직 데이터가 없고 이 브라우저에 저장된 데이터가 있으면 → 그대로 서버에 올림
