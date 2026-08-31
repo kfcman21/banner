@@ -1067,13 +1067,11 @@ function pushToServer() {
       const r = await fetch(SERVER_URL, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ events: rawEvents, settings: settings, auth: settings.pwHash || "" }),
+        body: JSON.stringify({ events: rawEvents, settings: settings }),
       });
       if (r.ok) {
         serverOnline = true;
         setSync("서버에 저장됨 · " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }));
-      } else if (r.status === 403) {
-        setSync("⚠ 서버 저장 거부 — 이 기기의 '입력 모드 비밀번호'가 서버와 달라요");
       } else {
         const j = await r.json().catch(() => ({}));
         setSync("⚠ 서버 저장 실패: " + (j.error || ("HTTP " + r.status)));
