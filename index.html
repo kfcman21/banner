@@ -714,18 +714,16 @@
     .slide-body { max-width: 100%; }
   }
 
-  /* 화면 비율과 사진 비율이 크게 다를 때(주로 세로 폰·태블릿):
-     사진을 잘라내지 않고 전체가 보이도록 맞추고, 여백은 흐린 배경으로 채움 */
-  @media (orientation: portrait), (max-aspect-ratio: 12 / 10) {
-    .slide-fill { display: block; }
-    .slide-art {
-      background-size: contain;
-      background-position: center 42%;
-    }
-    .slide.is-active .slide-art {
-      animation: none !important;
-      transform: none !important;   /* contain 상태에서 확대되어 잘리는 것 방지 */
-    }
+  /* 사진 비율이 화면 비율과 크게 다르면(JS 가 판단해 .fit-contain 부여):
+     잘라내지 않고 전체가 보이도록 맞추고, 남는 여백은 같은 사진의 흐린 확대본으로 채움 */
+  .slide.fit-contain .slide-fill { display: block; }
+  .slide.fit-contain .slide-art {
+    background-size: contain;
+    background-position: center 42%;
+  }
+  .slide.fit-contain.is-active .slide-art {
+    animation: none !important;
+    transform: none !important;   /* contain 상태에서 확대되어 잘리는 것 방지 */
   }
 </style>
 
@@ -1220,6 +1218,7 @@ function seedToPlain(ev, i) {
     place: ev.place || "",
     seconds: ev.seconds || null,
     art: ev.art || PRESETS[0].css,
+    artRatio: ev.artRatio || null,
   };
 }
 function toDTLocal(iso) {
@@ -1243,6 +1242,7 @@ let displayMode = false;
 let slideStart = performance.now();
 let elapsedBeforePause = 0;
 let formArt = PRESETS[0].css;
+let formArtRatio = null;   // 업로드 사진의 가로/세로 비율 (그라디언트면 null)
 
 function computeList() {
   const now = Date.now();
@@ -1300,6 +1300,7 @@ function buildSlides() {
     const fill = li.querySelector(".slide-fill");
     if (art) art.style.background = bg;
     if (fill) fill.style.background = bg;
+    fitSlideArt(li, ev);
     slidesEl.appendChild(li);
 
     const dot = document.createElement("button");
@@ -1341,6 +1342,40 @@ function applyData() {
 
 const slides = () => [...slidesEl.children];
 const dots = () => [...dotsEl.children];
+
+/* ---------- 사진을 화면에 맞춤 (비율 차이가 크면 잘리지 않게 contain) ---------- */
+function applyFit(li, ratio) {
+  const vr = window.innerWidth / Math.max(1, window.innerHeight);
+  // 로그 비율 거리 0.30(약 1.35배) 이상 차이나면 전체가 보이도록 contain
+  const useContain = ratio > 0 && Math.abs(Math.log(ratio / vr)) > 0.30;
+  li.classList.toggle("fit-contain", useContain);
+}
+const _ratioCache = {};
+function fitSlideArt(li, ev) {
+  if (ev.artRatio > 0) { applyFit(li, ev.artRatio); return; }
+  const m = /url\(\s*['"]?(.*?)['"]?\s*\)/i.exec(ev.art || "");
+  if (!m) { li.classList.remove("fit-contain"); return; }   // 그라디언트 → 항상 채움
+  const src = m[1];
+  if (_ratioCache[src] > 0) { ev.artRatio = _ratioCache[src]; applyFit(li, ev.artRatio); return; }
+  const im = new Image();
+  im.onload = () => {
+    const r = im.naturalWidth / Math.max(1, im.naturalHeight);
+    _ratioCache[src] = r;
+    ev.artRatio = r;
+    applyFit(li, r);
+  };
+  im.onerror = () => li.classList.remove("fit-contain");
+  im.src = src;
+}
+function refitAll() {
+  slides().forEach((li, i) => { if (list[i]) fitSlideArt(li, list[i]); });
+}
+let _fitTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(_fitTimer);
+  _fitTimer = setTimeout(refitAll, 150);
+});
+window.addEventListener("orientationchange", () => setTimeout(refitAll, 250));
 
 function show(i, resetTimer = true) {
   const n = list.length;
@@ -1496,6 +1531,7 @@ function buildSwatches() {
     b.setAttribute("aria-label", "배경색 " + p.name);
     b.addEventListener("click", () => {
       formArt = p.css;
+      formArtRatio = null;
       fImage.value = "";
       selSwatch(i);
       updateThumb();
@@ -1517,6 +1553,7 @@ function resetForm() {
   fEditId.value = "";
   fEnd.value = toDTLocal(inDays(7, 23, 59).toISOString());
   formArt = PRESETS[0].css;
+  formArtRatio = null;
   selSwatch(0);
   updateThumb();
   fSubmit.textContent = "추가";
@@ -1543,7 +1580,10 @@ function fileToArt(file) {
         ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
         // 작은따옴표로 감싸 style 속성/프로퍼티 어느 쪽에서도 안전하게
-        resolve("url('" + c.toDataURL("image/jpeg", 0.82) + "')");
+        resolve({
+          css: "url('" + c.toDataURL("image/jpeg", 0.82) + "')",
+          ratio: w / Math.max(1, h),
+        });
       };
       img.src = reader.result;
     };
@@ -1603,6 +1643,7 @@ function editRow(id) {
   fNote.value = ev.note || "";
   fSeconds.value = ev.seconds || "";
   formArt = ev.art || PRESETS[0].css;
+  formArtRatio = ev.artRatio || null;
   selSwatch(PRESETS.findIndex((p) => p.css === formArt));
   updateThumb();
   fSubmit.textContent = "수정 저장";
@@ -1637,6 +1678,7 @@ adminForm.addEventListener("submit", (e) => {
     note: fNote.value.trim(),
     seconds: fSeconds.value ? Math.min(60, Math.max(4, Number(fSeconds.value))) : null,
     art: formArt,
+    artRatio: formArtRatio || null,
   };
   const at = rawEvents.findIndex((x) => x.id === ev.id);
   const editing = at >= 0;
@@ -1661,11 +1703,13 @@ fImage.addEventListener("change", async () => {
   const f = fImage.files && fImage.files[0];
   if (!f) return;
   try {
-    formArt = await fileToArt(f);
+    const res = await fileToArt(f);
+    formArt = res.css;
+    formArtRatio = res.ratio;
     selSwatch(-1);
     updateThumb();
   } catch (err) {
-    showMsg("이미지를 불러오지 못했습니다.");
+    showMsg("이미지를 불러오지 못했습니다. (아이폰 HEIC 사진이면 '설정 → 카메라 → 포맷 → 호환성 우선'으로 바꾸거나 JPG로 저장해 주세요)");
     fImage.value = "";
   }
 });
