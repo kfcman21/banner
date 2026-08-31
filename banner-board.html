@@ -70,14 +70,20 @@
   /* ---------- slides ---------- */
   .slides {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     margin: 0;
     padding: 0;
     list-style: none;
   }
   .slide {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     opacity: 0;
     overflow: hidden;
     pointer-events: none;
@@ -94,18 +100,25 @@
   .slide-fill {
     display: none;
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     transform: scale(1.2);
+    -webkit-filter: blur(26px) saturate(1.15) brightness(.5);
     filter: blur(26px) saturate(1.15) brightness(.5);
     will-change: transform;
   }
 
   .slide-art {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -115,7 +128,10 @@
   .slide-art::before {
     content: "";
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     background-image: radial-gradient(rgba(255, 255, 255, .10) 1px, transparent 1.5px);
     background-size: 24px 24px;
     mix-blend-mode: overlay;
@@ -124,7 +140,10 @@
   .slide-art::after {
     content: "";
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     background:
       linear-gradient(185deg, rgba(9, 11, 16, .28) 0%, rgba(9, 11, 16, 0) 26%),
       linear-gradient(0deg, rgba(9, 11, 16, .92) 2%, rgba(9, 11, 16, .55) 24%, rgba(9, 11, 16, 0) 52%);
@@ -458,7 +477,10 @@
   /* ---------- empty state ---------- */
   .empty {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     display: grid;
     place-content: center;
     justify-items: center;
@@ -486,7 +508,10 @@
   /* ---------- 입력(관리자) 화면 ---------- */
   .admin-backdrop {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     background: rgba(6, 8, 12, .62);
     -webkit-backdrop-filter: blur(3px);
     backdrop-filter: blur(3px);
@@ -541,7 +566,10 @@
 
   .admin-gate {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: 3;
     display: none;
     flex-direction: column;
@@ -739,6 +767,33 @@
   .slide.fit-contain.is-active .slide-art {
     animation: none !important;
     transform: none !important;
+  }
+
+  /* ============ 구형 삼성 인터넷 / 구형 크로미움(Chromium < 87) 대응 ============
+     - inset 미지원 브라우저는 flex 의 gap 도 대개 미지원 → 자식 마진으로 간격 복구
+     - inset 는 위에서 이미 top/right/bottom/left 로 풀어 씀 */
+  @supports not (inset: 0px) {
+    .topbar > * + *,
+    .chrome > * + *,
+    .toolbar > * + *,
+    .admin-actions > * + *,
+    .slide-meta > * + *,
+    .pbnr-meta > * + *,
+    .now > * + *,
+    .fld-check > * + * { margin-left: .5rem; }
+
+    .dots > * + * { margin-left: .5rem; }
+    .footer > * + * { margin-left: 1rem; }
+    .swatches > * { margin: 0 .5rem .5rem 0; }
+
+    .slide-body > * + * { margin-top: 1rem; }
+    .slide-when > * { margin-right: 1rem; }
+    #adminForm > * + *,
+    .admin-body > * + *,
+    .setbox > * + *,
+    .admin-list > * + * { margin-top: .8rem; }
+    .fld > * + * { margin-top: .32rem; }
+    .doc, .stage { }
   }
 </style>
 
@@ -1352,8 +1407,10 @@ function applyData() {
   syncPlay();
 }
 
-const slides = () => [...slidesEl.children];
-const dots = () => [...dotsEl.children];
+// HTMLCollection 을 배열로 (구형 브라우저는 스프레드가 불안정)
+const toArr = (c) => Array.prototype.slice.call(c);
+const slides = () => toArr(slidesEl.children);
+const dots = () => toArr(dotsEl.children);
 
 /* ---------- 사진을 화면에 맞춤 (비율 차이가 크면 잘리지 않게 contain) ---------- */
 function applyFit(li, ratio) {
@@ -1446,7 +1503,25 @@ function loop(t) {
   if (elapsed >= d) next();
 }
 
-/* ---------- 발표 모드 / 전체화면 ---------- */
+/* ---------- 발표 모드 / 전체화면 (구형 삼성 인터넷: webkit 접두사 대응) ---------- */
+function fsElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement ||
+         document.webkitCurrentFullScreenElement || null;
+}
+function requestFS(el) {
+  var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitRequestFullScreen;
+  if (!fn) return;
+  try {
+    var p = fn.call(el);
+    if (p && typeof p.catch === "function") p.catch(function () {});
+  } catch (e) {}
+}
+function exitFS() {
+  var fn = document.exitFullscreen || document.webkitExitFullscreen || document.webkitCancelFullScreen;
+  if (!fn) return;
+  try { fn.call(document); } catch (e) {}
+}
+
 function setDisplay(on) {
   displayMode = on;
   stage.classList.toggle("display", on);
@@ -1454,23 +1529,21 @@ function setDisplay(on) {
   displayBtn.querySelector(".lbl").textContent = on ? "발표 모드 종료" : "발표 모드";
   hovering = false;
   syncPlay();
-  if (on && !document.fullscreenElement) {
-    try { document.documentElement.requestFullscreen?.().catch(() => {}); } catch (e) {}
-  }
+  if (on && !fsElement()) requestFS(document.documentElement);
 }
 
 function toggleFS() {
-  try {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
-    else document.exitFullscreen?.();
-  } catch (e) {}
+  if (!fsElement()) requestFS(document.documentElement);
+  else exitFS();
 }
 
-document.addEventListener("fullscreenchange", () => {
-  const fs = !!document.fullscreenElement;
+function onFsChange() {
+  var fs = !!fsElement();
   fsBtn.querySelector(".lbl").textContent = fs ? "전체화면 종료" : "전체화면";
   if (!fs && displayMode) setDisplay(false);
-});
+}
+document.addEventListener("fullscreenchange", onFsChange);
+document.addEventListener("webkitfullscreenchange", onFsChange);
 
 /* ---------- 조작 UI 자동 숨김 ---------- */
 let idleTimer;
@@ -1552,7 +1625,7 @@ function buildSwatches() {
   });
 }
 function selSwatch(i) {
-  [...swatchesEl.children].forEach((c, k) => c.classList.toggle("sel", k === i));
+  toArr(swatchesEl.children).forEach((c, k) => c.classList.toggle("sel", k === i));
 }
 function updateThumb() {
   fThumb.style.backgroundImage = formArt;
