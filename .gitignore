@@ -1,2 +1,81 @@
+# ==========================================
+# 환경 변수 및 보안/비밀 키 (Credentials & Secrets)
+# ==========================================
+.env
+.env.*
+!.env.example
+*.env
+*.key
+*.pem
+*.crt
+*.cer
+*.pfx
+*.p12
+*.keystore
+*.jks
+
+# 인증 정보 및 API 토큰 파일
+credentials.json
+service-account*.json
+firebase-adminsdk*.json
+google-services*.json
+client_secrets*.json
+secrets.*
+*.secret
+auth.json
+token.json
+id_rsa
+id_ed25519
+*.id_rsa
+*.id_ed25519
+
+# ==========================================
+# 에디터 및 AI 어시스턴트 설정 파일
+# ==========================================
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 .claude/
+.gemini/
+
+# ==========================================
+# OS 및 시스템 임시 파일
+# ==========================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Thumbs.db:encryptable
+desktop.ini
+$RECYCLE.BIN/
+
+# ==========================================
+# 로그 및 캐시 / 임시 파일
+# ==========================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+temp/
+tmp/
+.cache/
+.temp/
+
+# ==========================================
+# 빌드 및 의존성 패키지 (필요 시)
+# ==========================================
+node_modules/
+dist/
+build/
+coverage/
