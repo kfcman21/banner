@@ -1221,7 +1221,7 @@
         <button class="btn" type="button" id="serverSave">서버에 지금 저장</button>
         <button class="btn ghost" type="button" id="adminReset">기본 예시로 초기화</button>
       </div>
-      <p class="hint"><b>Alt+A</b> 로 이 입력 화면을 열고 닫습니다. 입력·수정하면 이 브라우저와 <b>서버(kfcman.link)</b>에 함께 저장되어 다른 기기에서도 같은 내용이 보이며, <b>서버 변경 감지 시 자동 반영</b> 및 <b>매일 오전 8시·12시 정기 새로고침</b>이 동작합니다. 게시 종료 일시가 지난 행사는 화면에서 자동으로 빠집니다.</p>
+      <p class="hint"><b>Alt+A</b> 로 이 입력 화면을 열고 닫습니다. 입력·수정하면 이 브라우저와 <b>서버(kfcman.link)</b>에 함께 저장되어 다른 기기에서도 같은 내용이 보이며, <b>서버 변경 감지 시 자동 반영</b> 및 <b>매일 오전 8시·9시·낮 12시 정기 새로고침</b>이 동작합니다. 게시 종료 일시가 지난 행사는 화면에서 자동으로 빠집니다.</p>
     </div>
   </aside>
 
@@ -1274,8 +1274,9 @@ const CONFIG = {
   // 자동 새로고침 및 서버 동기화 설정
   autoReload: {
     enabled: true,                         // 정기 새로고침 활성화
-    hours: [8, 12],                        // 정기 새로고침 시간 (오전 8시, 12시)
+    hours: [8, 9, 12],                     // 정기 새로고침 시간 (오전 8시, 9시, 낮 12시)
     minute: 0,                             // 0분 (정각)
+    catchUpMinutes: 45,                    // 화면이 꺼져 시각을 놓쳤을 때 따라잡기 허용 범위(분)
     pollServer: true,                      // 서버 변경 자동 감지 활성화
     pollIntervalSeconds: 30,               // 서버 변경 확인 주기 (30초)
   },
@@ -1659,48 +1660,102 @@ async function checkServerUpdate() {
   }
 }
 
-/* ---------- 정기 자동 새로고침 (오전 8시, 12시 등) ---------- */
+/* ---------- 정기 자동 새로고침 (오전 8시·9시, 낮 12시) ----------
+   구형 삼성 인터넷(WebView) 대응 메모:
+   · 화면이 꺼지거나 탭이 뒤로 밀리면 setInterval 이 몇 분씩 밀리거나 아예 멈춘다.
+     → "정각 그 순간"을 노리지 않고, 예정 시각을 지났는지로 판정하고 놓친 슬롯은 따라잡는다.
+     → 화면이 다시 켜질 때(visibilitychange/pageshow/focus)에도 즉시 한 번 확인한다.
+   · location.reload() 가 캐시된 문서를 그대로 되돌려 주는 경우가 있어,
+     주소에 캐시 무력화 값(_r)을 붙여 다시 열어 확실히 새 문서를 받게 한다.
+   · 옵셔널 체이닝(?.)·Set·padStart 등은 쓰지 않는다(구버전에서 스크립트 전체가 죽음).   */
 const SCHEDULED_RELOAD_KEY = "banner-board:last-scheduled-reload";
 let _isReloading = false;
+let _reloadDone = null;   // 이번 세션에서 이미 처리한 슬롯 { "20260908_09": true }
+
+function reloadSlotConfig() {
+  const cfg = CONFIG.autoReload || {};
+  const hours = Array.isArray(cfg.hours)
+    ? cfg.hours
+    : (typeof cfg.hour === "number" ? [cfg.hour] : [8, 9, 12]);
+  return {
+    hours: hours,
+    minute: typeof cfg.minute === "number" ? cfg.minute : 0,
+    catchUp: typeof cfg.catchUpMinutes === "number" ? cfg.catchUpMinutes : 45,
+  };
+}
+
+function reloadSlotKey(d, h) {
+  const p = (n) => (n < 10 ? "0" + n : "" + n);
+  return "" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" + p(h);
+}
+
+// 페이지를 연 시점에 이미 지나간 오늘의 슬롯은 "처리됨"으로 표시해 둔다.
+// (예: 10시에 켰다고 해서 8·9시 몫으로 곧바로 새로고침하지 않도록)
+function initScheduledReload() {
+  const s = reloadSlotConfig();
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  _reloadDone = {};
+  for (let i = 0; i < s.hours.length; i++) {
+    if (nowMin >= s.hours[i] * 60 + s.minute) {
+      _reloadDone[reloadSlotKey(now, s.hours[i])] = true;
+    }
+  }
+}
 
 async function checkScheduledReload() {
   const cfg = CONFIG.autoReload || {};
   if (cfg.enabled === false || _isReloading) return;
+  if (!_reloadDone) initScheduledReload();
 
-  // 기본값: 오전 8시(8) 및 12시(12)
-  const targetHours = Array.isArray(cfg.hours)
-    ? cfg.hours
-    : (typeof cfg.hour === "number" ? [cfg.hour] : [8, 12]);
-  const targetM = typeof cfg.minute === "number" ? cfg.minute : 0;
-
+  const s = reloadSlotConfig();
   const now = new Date();
-  const currentH = now.getHours();
-  const currentM = now.getMinutes();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
 
-  if (!targetHours.includes(currentH) || currentM !== targetM) return;
+  let dueHour = -1, slotKey = "";
+  for (let i = 0; i < s.hours.length; i++) {
+    const target = s.hours[i] * 60 + s.minute;
+    const late = nowMin - target;
+    if (late < 0 || late > s.catchUp) continue;       // 아직 이르거나, 너무 늦어 의미 없는 슬롯
+    const key = reloadSlotKey(now, s.hours[i]);
+    if (_reloadDone[key]) continue;
+    dueHour = s.hours[i];
+    slotKey = key;
+    break;
+  }
+  if (dueHour < 0) return;
 
-  const todayStr = "" + now.getFullYear() +
-    String(now.getMonth() + 1).padStart(2, "0") +
-    String(now.getDate()).padStart(2, "0");
-  const slotKey = todayStr + "_" + String(currentH).padStart(2, "0");
+  _reloadDone[slotKey] = true;                        // 시간대별로 하루 한 번만
+  if (isAdminOpen()) return;                          // 관리자 입력 중이면 방해하지 않음
 
-  let lastReloadSlot = "";
-  try { lastReloadSlot = localStorage.getItem(SCHEDULED_RELOAD_KEY) || ""; } catch (e) {}
+  let lastSlot = "";
+  try { lastSlot = localStorage.getItem(SCHEDULED_RELOAD_KEY) || ""; } catch (e) {}
+  if (lastSlot === slotKey) return;                   // 새로고침 직후 재실행 방지
 
-  if (lastReloadSlot !== slotKey && !isAdminOpen()) {
-    _isReloading = true;
-    try { localStorage.setItem(SCHEDULED_RELOAD_KEY, slotKey); } catch (e) {}
-    console.log(`[AutoReload] 정기 새로고침 실행 (${currentH}시 ${targetM}분) — 서버 정보 확인 및 동기화`);
-    setSync(`서버 정보 확인 및 정기 새로고침 중… (${currentH}시)`);
+  _isReloading = true;
+  try { localStorage.setItem(SCHEDULED_RELOAD_KEY, slotKey); } catch (e) {}
+  console.log("[AutoReload] 정기 새로고침 실행 (" + dueHour + "시 " + s.minute + "분) — 서버 정보 확인 및 동기화");
+  setSync("서버 정보 확인 및 정기 새로고침 중… (" + dueHour + "시)");
 
-    try {
-      // 새로고침 직전 서버 최신 정보 동기화
-      await loadFromServer();
-    } catch (e) {}
+  try {
+    // 새로고침 직전 서버 최신 정보 동기화
+    await loadFromServer();
+  } catch (e) {}
 
-    setTimeout(() => {
-      location.reload();
-    }, 500);
+  setTimeout(hardReload, 500);
+}
+
+// 구형 WebView 가 캐시된 문서를 되돌려 주는 것을 막기 위해 주소에 _r 값을 붙여 다시 연다.
+function hardReload() {
+  try {
+    const href = location.href;
+    const hash = location.hash || "";
+    let base = href.replace(/#.*$/, "");
+    base = base.replace(/([?&])_r=\d+&?/, "$1").replace(/[?&]$/, "");
+    const url = base + (base.indexOf("?") >= 0 ? "&" : "?") + "_r=" + Date.now() + hash;
+    location.replace(url);
+  } catch (e) {
+    location.reload();
   }
 }
 
@@ -2769,8 +2824,19 @@ buildSwatches();
 requestAnimationFrame(loop);
 tickClock();
 setInterval(tickClock, 15000);
-checkScheduledReload();
+initScheduledReload();
 poke();
+
+// 구형 삼성 인터넷은 화면이 꺼지면 setInterval 이 멈추거나 몇 분씩 밀린다.
+// 화면이 다시 켜지거나 앱으로 돌아왔을 때 곧바로 확인해 놓친 시각을 따라잡는다.
+function wakeCheck() {
+  if (document.hidden) return;
+  checkScheduledReload();
+  if (CONFIG.autoReload && CONFIG.autoReload.pollServer !== false) checkServerUpdate();
+}
+document.addEventListener("visibilitychange", wakeCheck);
+window.addEventListener("pageshow", wakeCheck);
+window.addEventListener("focus", wakeCheck);
 
 (async () => {
   const gotServer = await loadFromServer();   // 실패해도 로컬 저장값으로 계속
