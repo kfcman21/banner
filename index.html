@@ -1221,7 +1221,7 @@
         <button class="btn" type="button" id="serverSave">서버에 지금 저장</button>
         <button class="btn ghost" type="button" id="adminReset">기본 예시로 초기화</button>
       </div>
-      <p class="hint"><b>Alt+A</b> 로 이 입력 화면을 열고 닫습니다. 입력·수정하면 이 브라우저와 <b>서버(kfcman.link)</b>에 함께 저장되어, 다른 기기에서도 같은 내용이 보입니다. 게시 종료 일시가 지난 행사는 화면에서 자동으로 빠집니다.</p>
+      <p class="hint"><b>Alt+A</b> 로 이 입력 화면을 열고 닫습니다. 입력·수정하면 이 브라우저와 <b>서버(kfcman.link)</b>에 함께 저장되어 다른 기기에서도 같은 내용이 보이며, <b>서버 변경 감지 시 자동 반영</b> 및 <b>매일 오전 8시 정기 새로고침</b>이 동작합니다. 게시 종료 일시가 지난 행사는 화면에서 자동으로 빠집니다.</p>
     </div>
   </aside>
 
@@ -1270,6 +1270,15 @@ const CONFIG = {
   showClock: true,
   slideSeconds: 10,                        // 슬라이드당 표시 시간(초) 기본값
   adminHotkey: (e) => e.altKey && (e.code === "KeyA" || e.key === "a" || e.key === "A"),
+
+  // 자동 새로고침 및 서버 동기화 설정
+  autoReload: {
+    enabled: true,                         // 오전 8시 정기 새로고침 활성화
+    hour: 8,                               // 정기 새로고침 시간 (오전 8시)
+    minute: 0,
+    pollServer: true,                      // 서버 변경 자동 감지 활성화
+    pollIntervalSeconds: 30,               // 서버 변경 확인 주기 (30초)
+  },
 
   // 외부 연동 기본값 — 둘 다 인증키가 필요 없는 공개 API 이므로 그대로 적어 둔다.
   //  · 미세먼지: Open-Meteo 대기질 (위경도 기준, 무인증)
@@ -1530,6 +1539,18 @@ const SERVER_URL = /(^|\.)kfcman\.link$/.test(location.hostname)
   : "https://kfcman.link/api/banner/data";
 let serverOnline = false;
 let serverHadEvents = false;
+let _lastServerFingerprint = "";
+
+function calcFingerprint(events, sets) {
+  try {
+    return JSON.stringify({
+      events: events || [],
+      settings: sets || {}
+    });
+  } catch (e) {
+    return "";
+  }
+}
 
 function setSync(t) {
   const el = document.getElementById("syncMsg");
@@ -1553,6 +1574,7 @@ async function loadFromServer() {
       if (localPw) settings.pwHash = localPw;
       try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
     }
+    _lastServerFingerprint = calcFingerprint(d.events, d.settings);
     return true;
   } catch (e) {
     serverOnline = false;
@@ -1565,13 +1587,15 @@ function pushToServer() {
   clearTimeout(_pushTimer);
   _pushTimer = setTimeout(async () => {
     try {
+      const payload = { events: rawEvents, settings: settings };
       const r = await fetch(SERVER_URL, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ events: rawEvents, settings: settings }),
+        body: JSON.stringify(payload),
       });
       if (r.ok) {
         serverOnline = true;
+        _lastServerFingerprint = calcFingerprint(payload.events, payload.settings);
         setSync("서버에 저장됨 · " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }));
       } else {
         const j = await r.json().catch(() => ({}));
@@ -1580,8 +1604,89 @@ function pushToServer() {
     } catch (e) {
       serverOnline = false;
       setSync("오프라인 — 이 브라우저에만 저장됨");
+    } finally {
+      _pushTimer = null;
     }
   }, 500);
+}
+
+/* ---------- 서버 변경 실시간 감지 및 자동 새로고침 ---------- */
+let _checkingServer = false;
+async function checkServerUpdate() {
+  if (_checkingServer) return;
+  // 관리자 창이 열려 있거나, 로컬 저장이 대기 중이면 방해하지 않음
+  if (isAdminOpen() || _pushTimer) return;
+  _checkingServer = true;
+  try {
+    const r = await fetch(SERVER_URL, { cache: "no-store" });
+    if (!r.ok) {
+      serverOnline = false;
+      return;
+    }
+    const d = await r.json();
+    serverOnline = true;
+    const currentFp = calcFingerprint(d.events, d.settings);
+
+    // 최초 로딩 이후 서버 내용이 변경된 경우
+    if (_lastServerFingerprint && currentFp && currentFp !== _lastServerFingerprint) {
+      console.log("[AutoSync] 서버 변경 감지됨 → 새로고침으로 최신 데이터 반영");
+      _lastServerFingerprint = currentFp;
+
+      // 변경된 최신 데이터를 로컬에 즉시 저장
+      if (Array.isArray(d.events)) {
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(d.events)); } catch (e) {}
+      }
+      if (d.settings && typeof d.settings === "object") {
+        const localPw = settings.pwHash;
+        const merged = Object.assign({}, DEFAULT_SETTINGS, d.settings);
+        if (localPw) merged.pwHash = localPw;
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged)); } catch (e) {}
+      }
+
+      setSync("서버 데이터 변경됨 · 새로고침 중…");
+      setTimeout(() => {
+        if (!isAdminOpen()) {
+          location.reload();
+        }
+      }, 1000);
+    } else if (!_lastServerFingerprint && currentFp) {
+      _lastServerFingerprint = currentFp;
+    }
+  } catch (e) {
+    serverOnline = false;
+  } finally {
+    _checkingServer = false;
+  }
+}
+
+/* ---------- 오전 8시 정기 자동 새로고침 ---------- */
+const DAILY_RELOAD_KEY = "banner-board:last-daily-reload";
+
+function checkDailyReload() {
+  const cfg = CONFIG.autoReload || {};
+  if (cfg.enabled === false) return;
+
+  const targetH = typeof cfg.hour === "number" ? cfg.hour : 8;
+  const targetM = typeof cfg.minute === "number" ? cfg.minute : 0;
+
+  const now = new Date();
+  const currentH = now.getHours();
+  const currentM = now.getMinutes();
+
+  const todayStr = "" + now.getFullYear() +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    String(now.getDate()).padStart(2, "0");
+
+  let lastReload = "";
+  try { lastReload = localStorage.getItem(DAILY_RELOAD_KEY) || ""; } catch (e) {}
+
+  if (currentH === targetH && currentM === targetM && lastReload !== todayStr) {
+    if (!isAdminOpen()) {
+      try { localStorage.setItem(DAILY_RELOAD_KEY, todayStr); } catch (e) {}
+      console.log(`[AutoReload] 매일 오전 ${targetH}시 정기 새로고침 실행`);
+      location.reload();
+    }
+  }
 }
 
 let _msgTimer;
@@ -2639,8 +2744,9 @@ document.addEventListener("touchend", (e) => {
 function tickClock() {
   const d = new Date();
   dateEl.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WD[d.getDay()]})`;
-  if (!CONFIG.showClock) { clockEl.style.display = "none"; return; }
-  clockEl.textContent = d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+  if (!CONFIG.showClock) { clockEl.style.display = "none"; }
+  else { clockEl.textContent = d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }); }
+  checkDailyReload();
 }
 
 /* ---------- 시작 ---------- */
@@ -2648,6 +2754,7 @@ buildSwatches();
 requestAnimationFrame(loop);
 tickClock();
 setInterval(tickClock, 15000);
+checkDailyReload();
 poke();
 
 (async () => {
@@ -2664,6 +2771,12 @@ poke();
   // 미세먼지 10분 · 급식 30분마다 갱신 (날짜가 바뀌면 급식도 새로)
   setInterval(() => refreshAir(false), 10 * 60 * 1000);
   setInterval(() => { if (settings.showMeal) refreshMeal(false); }, 30 * 60 * 1000);
+
+  // 서버 변경 감지 주기적 확인 (기본 30초)
+  if (CONFIG.autoReload && CONFIG.autoReload.pollServer !== false) {
+    const pollSec = Math.max(10, CONFIG.autoReload.pollIntervalSeconds || 30);
+    setInterval(checkServerUpdate, pollSec * 1000);
+  }
 
   if (gotServer && !serverHadEvents && hadLocalEvents) {
     // 서버에 아직 데이터가 없고 이 브라우저에 저장된 데이터가 있으면 → 그대로 서버에 올림
