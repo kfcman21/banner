@@ -1221,7 +1221,7 @@
         <button class="btn" type="button" id="serverSave">서버에 지금 저장</button>
         <button class="btn ghost" type="button" id="adminReset">기본 예시로 초기화</button>
       </div>
-      <p class="hint"><b>Alt+A</b> 로 이 입력 화면을 열고 닫습니다. 입력·수정하면 이 브라우저와 <b>서버(kfcman.link)</b>에 함께 저장되어 다른 기기에서도 같은 내용이 보이며, <b>서버 변경 감지 시 자동 반영</b> 및 <b>매일 오전 8시 정기 새로고침</b>이 동작합니다. 게시 종료 일시가 지난 행사는 화면에서 자동으로 빠집니다.</p>
+      <p class="hint"><b>Alt+A</b> 로 이 입력 화면을 열고 닫습니다. 입력·수정하면 이 브라우저와 <b>서버(kfcman.link)</b>에 함께 저장되어 다른 기기에서도 같은 내용이 보이며, <b>서버 변경 감지 시 자동 반영</b> 및 <b>매일 오전 8시·12시 정기 새로고침</b>이 동작합니다. 게시 종료 일시가 지난 행사는 화면에서 자동으로 빠집니다.</p>
     </div>
   </aside>
 
@@ -1273,9 +1273,9 @@ const CONFIG = {
 
   // 자동 새로고침 및 서버 동기화 설정
   autoReload: {
-    enabled: true,                         // 오전 8시 정기 새로고침 활성화
-    hour: 8,                               // 정기 새로고침 시간 (오전 8시)
-    minute: 0,
+    enabled: true,                         // 정기 새로고침 활성화
+    hours: [8, 12],                        // 정기 새로고침 시간 (오전 8시, 12시)
+    minute: 0,                             // 0분 (정각)
     pollServer: true,                      // 서버 변경 자동 감지 활성화
     pollIntervalSeconds: 30,               // 서버 변경 확인 주기 (30초)
   },
@@ -1659,33 +1659,48 @@ async function checkServerUpdate() {
   }
 }
 
-/* ---------- 오전 8시 정기 자동 새로고침 ---------- */
-const DAILY_RELOAD_KEY = "banner-board:last-daily-reload";
+/* ---------- 정기 자동 새로고침 (오전 8시, 12시 등) ---------- */
+const SCHEDULED_RELOAD_KEY = "banner-board:last-scheduled-reload";
+let _isReloading = false;
 
-function checkDailyReload() {
+async function checkScheduledReload() {
   const cfg = CONFIG.autoReload || {};
-  if (cfg.enabled === false) return;
+  if (cfg.enabled === false || _isReloading) return;
 
-  const targetH = typeof cfg.hour === "number" ? cfg.hour : 8;
+  // 기본값: 오전 8시(8) 및 12시(12)
+  const targetHours = Array.isArray(cfg.hours)
+    ? cfg.hours
+    : (typeof cfg.hour === "number" ? [cfg.hour] : [8, 12]);
   const targetM = typeof cfg.minute === "number" ? cfg.minute : 0;
 
   const now = new Date();
   const currentH = now.getHours();
   const currentM = now.getMinutes();
 
+  if (!targetHours.includes(currentH) || currentM !== targetM) return;
+
   const todayStr = "" + now.getFullYear() +
     String(now.getMonth() + 1).padStart(2, "0") +
     String(now.getDate()).padStart(2, "0");
+  const slotKey = todayStr + "_" + String(currentH).padStart(2, "0");
 
-  let lastReload = "";
-  try { lastReload = localStorage.getItem(DAILY_RELOAD_KEY) || ""; } catch (e) {}
+  let lastReloadSlot = "";
+  try { lastReloadSlot = localStorage.getItem(SCHEDULED_RELOAD_KEY) || ""; } catch (e) {}
 
-  if (currentH === targetH && currentM === targetM && lastReload !== todayStr) {
-    if (!isAdminOpen()) {
-      try { localStorage.setItem(DAILY_RELOAD_KEY, todayStr); } catch (e) {}
-      console.log(`[AutoReload] 매일 오전 ${targetH}시 정기 새로고침 실행`);
+  if (lastReloadSlot !== slotKey && !isAdminOpen()) {
+    _isReloading = true;
+    try { localStorage.setItem(SCHEDULED_RELOAD_KEY, slotKey); } catch (e) {}
+    console.log(`[AutoReload] 정기 새로고침 실행 (${currentH}시 ${targetM}분) — 서버 정보 확인 및 동기화`);
+    setSync(`서버 정보 확인 및 정기 새로고침 중… (${currentH}시)`);
+
+    try {
+      // 새로고침 직전 서버 최신 정보 동기화
+      await loadFromServer();
+    } catch (e) {}
+
+    setTimeout(() => {
       location.reload();
-    }
+    }, 500);
   }
 }
 
@@ -2746,7 +2761,7 @@ function tickClock() {
   dateEl.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WD[d.getDay()]})`;
   if (!CONFIG.showClock) { clockEl.style.display = "none"; }
   else { clockEl.textContent = d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }); }
-  checkDailyReload();
+  checkScheduledReload();
 }
 
 /* ---------- 시작 ---------- */
@@ -2754,7 +2769,7 @@ buildSwatches();
 requestAnimationFrame(loop);
 tickClock();
 setInterval(tickClock, 15000);
-checkDailyReload();
+checkScheduledReload();
 poke();
 
 (async () => {
