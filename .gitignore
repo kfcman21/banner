@@ -22,12 +22,29 @@ google-services*.json
 client_secrets*.json
 secrets.*
 *.secret
+*.secret.json
 auth.json
 token.json
+tokens.json
+api_key*
+apikey*
+api-key*
+*.token
+
+# SSH 및 클라우드 자격 증명 (Cloud & SSH Credentials)
 id_rsa
 id_ed25519
+id_ecdsa
+id_dsa
 *.id_rsa
 *.id_ed25519
+*.id_ecdsa
+*.id_dsa
+known_hosts
+.aws/
+.gcloud/
+.azure/
+gcloud.json
 
 # ==========================================
 # 에디터 및 AI 어시스턴트 설정 파일
@@ -41,6 +58,9 @@ id_ed25519
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*.swo
+*~
 .claude/
 .gemini/
 
@@ -79,3 +99,22 @@ node_modules/
 dist/
 build/
 coverage/
+
+# ==========================================
+# 백업, 압축 파일 및 DB 덤프 (유출 방지)
+# ==========================================
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.sql
+*.dump
+*.sqlite
+*.sqlite3
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
