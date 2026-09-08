@@ -672,7 +672,16 @@
   .swatches { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .15rem; }
   .swatch { width: 42px; height: 28px; border-radius: 6px; border: 2px solid transparent; padding: 0; cursor: pointer; }
   .swatch.sel { border-color: #fff; }
-  .thumb { height: 92px; margin-top: .4rem; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; }
+  .thumb { height: 92px; margin-top: .4rem; border-radius: 8px; border: 1px solid var(--line); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; padding: .6rem; text-align: center; overflow: hidden; }
+  .thumb-text { font-family: var(--font-display); font-size: 1.05rem; font-weight: 500; line-height: 1.25; pointer-events: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: keep-all; }
+
+  .color-picker-row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-top: .2rem; }
+  .text-swatches { margin-top: 0; }
+  .text-swatches .swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .25); position: relative; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+  .text-swatches .swatch.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--normal), 0 2px 8px rgba(0,0,0,.5); transform: scale(1.1); }
+  .custom-color-wrap { display: flex; align-items: center; gap: .4rem; }
+  .custom-color-wrap input[type="color"] { width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: transparent; cursor: pointer; vertical-align: middle; }
+  .text-color-reset { font-size: .75rem; padding: .35em .75em; }
 
   .admin-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
   .btn {
@@ -857,8 +866,9 @@
   .no-flexgap .foot-next > * + *,
   .no-flexgap .arow > * + *,
   .no-flexgap .admin-head > * + * { margin-left: .5em; }
-  .no-flexgap .empty > * + * { margin-top: .4rem; }
   .no-flexgap .swatches > * { margin: 0 .5rem .5rem 0; }
+  .no-flexgap .color-picker-row > * { margin-right: .6rem; margin-bottom: .4rem; }
+  .no-flexgap .custom-color-wrap > * { margin-right: .4rem; }
   .no-flexgap .ticker-track > .tick { margin-right: 2.8rem; }
   .no-flexgap .tick > * + * { margin-left: .55em; }
 
@@ -1208,7 +1218,17 @@
           <label for="fImage">배경 이미지 (선택 · 미선택 시 색상 사용)</label>
           <input type="file" id="fImage" accept="image/*">
           <div class="swatches" id="swatches"></div>
-          <div class="thumb" id="fThumb"></div>
+          <div class="thumb" id="fThumb"><span class="thumb-text" id="fThumbText"></span></div>
+        </div>
+        <div class="fld">
+          <label>글자색 (제목 색상)</label>
+          <div class="color-picker-row">
+            <div class="swatches text-swatches" id="textColorSwatches"></div>
+            <div class="custom-color-wrap">
+              <input type="color" id="fTextColorCustom" value="#ffffff" title="직접 색상 선택">
+              <button class="btn ghost text-color-reset" type="button" id="textColorReset" title="기본 흰색으로">기본색</button>
+            </div>
+          </div>
         </div>
         <div class="admin-actions">
           <button class="btn primary" type="submit" id="fSubmit">추가</button>
@@ -1308,6 +1328,17 @@ const PRESETS = [
   { name: "틸",     css: "linear-gradient(135deg, #07312e 0%, #116b63 55%, #57b0a6 100%)" },
   { name: "그린",   css: "linear-gradient(135deg, #123a1e 0%, #2e8f4c 55%, #a7d24e 100%)" },
   { name: "인디고", css: "linear-gradient(135deg, #221a5c 0%, #3b4bb0 55%, #7aa0e0 100%)" },
+];
+
+/* 글자색 프리셋 */
+const TEXT_COLORS = [
+  { name: "기본 흰색", color: "#ffffff" },
+  { name: "연노랑",   color: "#fef08a" },
+  { name: "골드",     color: "#facc15" },
+  { name: "주황",     color: "#fb923c" },
+  { name: "하늘",     color: "#38bdf8" },
+  { name: "연두",     color: "#4ade80" },
+  { name: "진한 먹색", color: "#18181b" },
 ];
 
 const EVENTS = [
@@ -1429,6 +1460,10 @@ const fNote = document.getElementById("fNote");
 const fSeconds = document.getElementById("fSeconds");
 const fImage = document.getElementById("fImage");
 const fThumb = document.getElementById("fThumb");
+const fThumbText = document.getElementById("fThumbText");
+const textColorSwatchesEl = document.getElementById("textColorSwatches");
+const fTextColorCustom = document.getElementById("fTextColorCustom");
+const textColorResetBtn = document.getElementById("textColorReset");
 const fSubmit = document.getElementById("fSubmit");
 const fCancel = document.getElementById("fCancel");
 const fSchool = document.getElementById("fSchool");
@@ -1828,6 +1863,7 @@ function seedToPlain(ev, i) {
     seconds: ev.seconds || null,
     art: ev.art || PRESETS[0].css,
     artRatio: ev.artRatio || null,
+    textColor: ev.textColor || "",
   };
 }
 function toDTLocal(iso) {
@@ -1852,6 +1888,7 @@ let slideStart = performance.now();
 let elapsedBeforePause = 0;
 let formArt = PRESETS[0].css;
 let formArtRatio = null;   // 업로드 사진의 가로/세로 비율 (그라디언트면 null)
+let formTextColor = "";    // 선택한 글자색 (기본값: 빈 문자열 = 흰색)
 
 
 /* =========================================================================
@@ -2145,6 +2182,15 @@ function buildSlides() {
           ${when ? `<span>${esc(when)}</span>` : ""}
         </div>
       </div>`;
+    if (ev.textColor) {
+      const titleEl = li.querySelector(".slide-title");
+      if (titleEl) {
+        titleEl.style.color = ev.textColor;
+        if (isDarkColor(ev.textColor)) {
+          titleEl.style.textShadow = "0 2px 25px rgba(255, 255, 255, .7), 0 0 4px rgba(255, 255, 255, .9)";
+        }
+      }
+    }
     // background-image 만 지정 (background 단축속성은 CSS 의 background-size:contain/cover 를
     // auto 로 덮어써서 모바일에서 이미지가 잘리는 원인이 됨)
     const bg = ev.art || PRESETS[0].css;
@@ -2455,11 +2501,78 @@ function buildSwatches() {
 function selSwatch(i) {
   toArr(swatchesEl.children).forEach((c, k) => c.classList.toggle("sel", k === i));
 }
+function isDarkColor(hexOrRgb) {
+  if (!hexOrRgb) return false;
+  let r = 255, g = 255, b = 255;
+  const h = String(hexOrRgb).trim();
+  if (h.indexOf("#") === 0) {
+    const hex = h.slice(1);
+    if (hex.length === 3) {
+      r = parseInt(hex[0] + hex[0], 16);
+      g = parseInt(hex[1] + hex[1], 16);
+      b = parseInt(hex[2] + hex[2], 16);
+    } else if (hex.length >= 6) {
+      r = parseInt(hex.slice(0, 2), 16);
+      g = parseInt(hex.slice(2, 4), 16);
+      b = parseInt(hex.slice(4, 6), 16);
+    }
+  } else if (h.indexOf("rgb") === 0) {
+    const parts = h.match(/\d+/g);
+    if (parts && parts.length >= 3) {
+      r = Number(parts[0]); g = Number(parts[1]); b = Number(parts[2]);
+    }
+  }
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq < 128;
+}
+
+function buildTextColorSwatches() {
+  if (!textColorSwatchesEl) return;
+  textColorSwatchesEl.innerHTML = "";
+  TEXT_COLORS.forEach((t) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "swatch";
+    b.style.backgroundColor = t.color;
+    b.title = t.name;
+    b.setAttribute("aria-label", "글자색 " + t.name);
+    b.addEventListener("click", () => {
+      formTextColor = t.color;
+      if (fTextColorCustom) fTextColorCustom.value = t.color;
+      selTextColorSwatch(t.color);
+      updateThumb();
+    });
+    textColorSwatchesEl.appendChild(b);
+  });
+  selTextColorSwatch(formTextColor || "#ffffff");
+}
+
+function selTextColorSwatch(color) {
+  if (!textColorSwatchesEl) return;
+  const target = (color || "#ffffff").toLowerCase();
+  toArr(textColorSwatchesEl.children).forEach((c, k) => {
+    const preset = TEXT_COLORS[k];
+    const match = preset && preset.color.toLowerCase() === target;
+    c.classList.toggle("sel", match);
+  });
+}
+
 function updateThumb() {
   fThumb.style.backgroundImage = formArt;
   fThumb.style.backgroundSize = "cover";
   fThumb.style.backgroundPosition = "center";
   fThumb.style.backgroundRepeat = "no-repeat";
+  if (fThumbText) {
+    const color = formTextColor || "#ffffff";
+    fThumbText.style.color = color;
+    const rawTitle = (fTitle.value || "").trim();
+    fThumbText.textContent = rawTitle ? rawTitle.replace(/\n/g, " ") : "제목 글자색 미리보기";
+    if (isDarkColor(color)) {
+      fThumbText.style.textShadow = "0 1px 8px rgba(255, 255, 255, .8), 0 0 2px #fff";
+    } else {
+      fThumbText.style.textShadow = "0 2px 10px rgba(0, 0, 0, .8), 0 0 2px #000";
+    }
+  }
 }
 
 function resetForm() {
@@ -2468,7 +2581,10 @@ function resetForm() {
   fEnd.value = toDTLocal(inDays(7, 23, 59).toISOString());
   formArt = PRESETS[0].css;
   formArtRatio = null;
+  formTextColor = "";
+  if (fTextColorCustom) fTextColorCustom.value = "#ffffff";
   selSwatch(0);
+  selTextColorSwatch("#ffffff");
   updateThumb();
   fSubmit.textContent = "추가";
 }
@@ -2533,12 +2649,15 @@ function renderAdminList() {
   rawEvents.forEach((ev) => {
     const t = TIER[ev.tier] || TIER.normal;
     const when = ev.eventStart ? fmtWhen(ev.eventStart) : (ev.note || "—");
+    const colorDot = ev.textColor
+      ? '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + esc(ev.textColor) + ';border:1px solid rgba(255,255,255,.4);margin-right:4px;vertical-align:middle" title="글자색: ' + esc(ev.textColor) + '"></span>'
+      : "";
     const row = document.createElement("div");
     row.className = "arow";
     row.innerHTML =
       '<span class="bar" style="background:' + t.color + '"></span>' +
       '<span class="at"><b>' + esc(ev.title).replace(/\n/g, " ") + "</b><span>" +
-      esc(t.label) + " · " + esc(when) + "</span></span>";
+      colorDot + esc(t.label) + " · " + esc(when) + "</span></span>";
     const edit = document.createElement("button");
     edit.type = "button";
     edit.textContent = "수정";
@@ -2577,7 +2696,10 @@ function editRow(id) {
   fSeconds.value = ev.seconds || "";
   formArt = ev.art || PRESETS[0].css;
   formArtRatio = ev.artRatio || null;
+  formTextColor = ev.textColor || "";
+  if (fTextColorCustom) fTextColorCustom.value = formTextColor || "#ffffff";
   selSwatch(PRESETS.findIndex((p) => p.css === formArt));
+  selTextColorSwatch(formTextColor);
   updateThumb();
   fSubmit.textContent = "수정 저장";
   const body = adminEl.querySelector(".admin-body");
@@ -2612,6 +2734,7 @@ adminForm.addEventListener("submit", (e) => {
     seconds: fSeconds.value ? Math.min(60, Math.max(4, Number(fSeconds.value))) : null,
     art: formArt,
     artRatio: formArtRatio || null,
+    textColor: formTextColor || null,
   };
   const at = rawEvents.findIndex((x) => x.id === ev.id);
   const editing = at >= 0;
@@ -2631,11 +2754,11 @@ fTitle.addEventListener("keydown", (e) => {
     else adminForm.dispatchEvent(new Event("submit", { cancelable: true }));
   }
 });
+fTitle.addEventListener("input", updateThumb);
 
 fImage.addEventListener("change", async () => {
   const f = fImage.files && fImage.files[0];
   if (!f) return;
-  showMsg("이미지 최적화 중…");
   try {
     const res = await fileToArt(f);
     formArt = res.css;
@@ -2649,6 +2772,22 @@ fImage.addEventListener("change", async () => {
     fImage.value = "";
   }
 });
+
+if (fTextColorCustom) {
+  fTextColorCustom.addEventListener("input", (e) => {
+    formTextColor = e.target.value;
+    selTextColorSwatch(formTextColor);
+    updateThumb();
+  });
+}
+if (textColorResetBtn) {
+  textColorResetBtn.addEventListener("click", () => {
+    formTextColor = "";
+    if (fTextColorCustom) fTextColorCustom.value = "#ffffff";
+    selTextColorSwatch("#ffffff");
+    updateThumb();
+  });
+}
 
 fCancel.addEventListener("click", resetForm);
 adminClose.addEventListener("click", () => setAdmin(false));
@@ -2887,6 +3026,7 @@ function tickClock() {
 
 /* ---------- 시작 ---------- */
 buildSwatches();
+buildTextColorSwatches();
 requestAnimationFrame(loop);
 tickClock();
 setInterval(tickClock, 15000);
