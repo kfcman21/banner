@@ -679,6 +679,7 @@
   .text-swatches { margin-top: 0; }
   .text-swatches .swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .25); position: relative; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
   .text-swatches .swatch.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--normal), 0 2px 8px rgba(0,0,0,.5); transform: scale(1.1); }
+  .text-swatches .swatch.no-color { background: linear-gradient(135deg, transparent 44%, #ef4444 44%, #ef4444 56%, transparent 56%), #27272a !important; }
   .custom-color-wrap { display: flex; align-items: center; gap: .4rem; }
   .custom-color-wrap input[type="color"] { width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: transparent; cursor: pointer; vertical-align: middle; }
   .text-color-reset { font-size: .75rem; padding: .35em .75em; }
@@ -1230,6 +1231,16 @@
             </div>
           </div>
         </div>
+        <div class="fld">
+          <label>글자 테두리색 (외곽선)</label>
+          <div class="color-picker-row">
+            <div class="swatches text-swatches" id="strokeColorSwatches"></div>
+            <div class="custom-color-wrap">
+              <input type="color" id="fStrokeColorCustom" value="#000000" title="직접 테두리색 선택">
+              <button class="btn ghost text-color-reset" type="button" id="strokeColorReset" title="테두리 없음으로 되돌리기">테두리 없음</button>
+            </div>
+          </div>
+        </div>
         <div class="admin-actions">
           <button class="btn primary" type="submit" id="fSubmit">추가</button>
           <button class="btn ghost" type="button" id="fCancel">입력 지우기</button>
@@ -1339,6 +1350,17 @@ const TEXT_COLORS = [
   { name: "하늘",     color: "#38bdf8" },
   { name: "연두",     color: "#4ade80" },
   { name: "진한 먹색", color: "#18181b" },
+];
+
+/* 글자 테두리색(외곽선) 프리셋 */
+const STROKE_COLORS = [
+  { name: "테두리 없음", color: "" },
+  { name: "또렷한 검정", color: "#000000" },
+  { name: "진한 먹색",   color: "#1e293b" },
+  { name: "깨끗한 흰색", color: "#ffffff" },
+  { name: "골드 외곽선", color: "#facc15" },
+  { name: "네이비",     color: "#0f172a" },
+  { name: "다크 레드",   color: "#450a0a" },
 ];
 
 const EVENTS = [
@@ -1464,6 +1486,9 @@ const fThumbText = document.getElementById("fThumbText");
 const textColorSwatchesEl = document.getElementById("textColorSwatches");
 const fTextColorCustom = document.getElementById("fTextColorCustom");
 const textColorResetBtn = document.getElementById("textColorReset");
+const strokeColorSwatchesEl = document.getElementById("strokeColorSwatches");
+const fStrokeColorCustom = document.getElementById("fStrokeColorCustom");
+const strokeColorResetBtn = document.getElementById("strokeColorReset");
 const fSubmit = document.getElementById("fSubmit");
 const fCancel = document.getElementById("fCancel");
 const fSchool = document.getElementById("fSchool");
@@ -1867,6 +1892,7 @@ function seedToPlain(ev, i) {
     art: ev.art || PRESETS[0].css,
     artRatio: ev.artRatio || null,
     textColor: ev.textColor || "",
+    textStrokeColor: ev.textStrokeColor || "",
   };
 }
 function toDTLocal(iso) {
@@ -1892,6 +1918,7 @@ let elapsedBeforePause = 0;
 let formArt = PRESETS[0].css;
 let formArtRatio = null;   // 업로드 사진의 가로/세로 비율 (그라디언트면 null)
 let formTextColor = "";    // 선택한 글자색 (기본값: 빈 문자열 = 흰색)
+let formTextStrokeColor = ""; // 선택한 글자 테두리색 (기본값: 빈 문자열 = 없음)
 
 
 /* =========================================================================
@@ -2185,14 +2212,9 @@ function buildSlides() {
           ${when ? `<span>${esc(when)}</span>` : ""}
         </div>
       </div>`;
-    if (ev.textColor) {
-      const titleEl = li.querySelector(".slide-title");
-      if (titleEl) {
-        titleEl.style.color = ev.textColor;
-        if (isDarkColor(ev.textColor)) {
-          titleEl.style.textShadow = "0 2px 25px rgba(255, 255, 255, .7), 0 0 4px rgba(255, 255, 255, .9)";
-        }
-      }
+    const titleEl = li.querySelector(".slide-title");
+    if (titleEl) {
+      applyTextStyle(titleEl, ev.textColor, ev.textStrokeColor);
     }
     // background-image 만 지정 (background 단축속성은 CSS 의 background-size:contain/cover 를
     // auto 로 덮어써서 모바일에서 이미지가 잘리는 원인이 됨)
@@ -2545,6 +2567,36 @@ function isDarkColor(hexOrRgb) {
   return yiq < 128;
 }
 
+function applyTextStyle(el, textColor, textStrokeColor) {
+  if (!el) return;
+  const tc = textColor || "#ffffff";
+  const sc = textStrokeColor || "";
+  el.style.color = tc;
+
+  if (sc) {
+    el.style.webkitTextStroke = "2px " + sc;
+    el.style.paintOrder = "stroke fill";
+    el.style.textShadow =
+      "-1.5px -1.5px 0 " + sc + ", " +
+       "1.5px -1.5px 0 " + sc + ", " +
+      "-1.5px  1.5px 0 " + sc + ", " +
+       "1.5px  1.5px 0 " + sc + ", " +
+       "0 -2px 0 " + sc + ", " +
+       "0  2px 0 " + sc + ", " +
+      "-2px 0 0 " + sc + ", " +
+       "2px 0 0 " + sc + ", " +
+       "0 2px 20px rgba(0, 0, 0, 0.4)";
+  } else {
+    el.style.webkitTextStroke = "";
+    el.style.paintOrder = "";
+    if (tc && isDarkColor(tc)) {
+      el.style.textShadow = "0 2px 25px rgba(255, 255, 255, .7), 0 0 4px rgba(255, 255, 255, .9)";
+    } else {
+      el.style.textShadow = "0 2px 30px rgba(0, 0, 0, .45)";
+    }
+  }
+}
+
 function buildTextColorSwatches() {
   if (!textColorSwatchesEl) return;
   textColorSwatchesEl.innerHTML = "";
@@ -2576,21 +2628,46 @@ function selTextColorSwatch(color) {
   });
 }
 
+function buildStrokeColorSwatches() {
+  if (!strokeColorSwatchesEl) return;
+  strokeColorSwatchesEl.innerHTML = "";
+  STROKE_COLORS.forEach((s) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "swatch" + (!s.color ? " no-color" : "");
+    if (s.color) b.style.backgroundColor = s.color;
+    b.title = s.name;
+    b.setAttribute("aria-label", "테두리색 " + s.name);
+    b.addEventListener("click", () => {
+      formTextStrokeColor = s.color;
+      if (fStrokeColorCustom && s.color) fStrokeColorCustom.value = s.color;
+      selStrokeColorSwatch(s.color);
+      updateThumb();
+    });
+    strokeColorSwatchesEl.appendChild(b);
+  });
+  selStrokeColorSwatch(formTextStrokeColor || "");
+}
+
+function selStrokeColorSwatch(color) {
+  if (!strokeColorSwatchesEl) return;
+  const target = (color || "").toLowerCase();
+  toArr(strokeColorSwatchesEl.children).forEach((c, k) => {
+    const preset = STROKE_COLORS[k];
+    const match = preset && (preset.color || "").toLowerCase() === target;
+    c.classList.toggle("sel", match);
+  });
+}
+
 function updateThumb() {
   fThumb.style.backgroundImage = formArt;
   fThumb.style.backgroundSize = "cover";
   fThumb.style.backgroundPosition = "center";
   fThumb.style.backgroundRepeat = "no-repeat";
   if (fThumbText) {
-    const color = formTextColor || "#ffffff";
-    fThumbText.style.color = color;
     const rawTitle = (fTitle.value || "").trim();
     fThumbText.textContent = rawTitle ? rawTitle.replace(/\n/g, " ") : "제목 글자색 미리보기";
-    if (isDarkColor(color)) {
-      fThumbText.style.textShadow = "0 1px 8px rgba(255, 255, 255, .8), 0 0 2px #fff";
-    } else {
-      fThumbText.style.textShadow = "0 2px 10px rgba(0, 0, 0, .8), 0 0 2px #000";
-    }
+    applyTextStyle(fThumbText, formTextColor, formTextStrokeColor);
   }
 }
 
@@ -2601,9 +2678,12 @@ function resetForm() {
   formArt = PRESETS[0].css;
   formArtRatio = null;
   formTextColor = "";
+  formTextStrokeColor = "";
   if (fTextColorCustom) fTextColorCustom.value = "#ffffff";
+  if (fStrokeColorCustom) fStrokeColorCustom.value = "#000000";
   selSwatch(0);
   selTextColorSwatch("#ffffff");
+  selStrokeColorSwatch("");
   updateThumb();
   fSubmit.textContent = "추가";
 }
@@ -2671,12 +2751,15 @@ function renderAdminList() {
     const colorDot = ev.textColor
       ? '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + esc(ev.textColor) + ';border:1px solid rgba(255,255,255,.4);margin-right:4px;vertical-align:middle" title="글자색: ' + esc(ev.textColor) + '"></span>'
       : "";
+    const strokeDot = ev.textStrokeColor
+      ? '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + esc(ev.textStrokeColor) + ';border:1.5px solid #38bdf8;margin-right:4px;vertical-align:middle" title="테두리색: ' + esc(ev.textStrokeColor) + '"></span>'
+      : "";
     const row = document.createElement("div");
     row.className = "arow";
     row.innerHTML =
       '<span class="bar" style="background:' + t.color + '"></span>' +
       '<span class="at"><b>' + esc(ev.title).replace(/\n/g, " ") + "</b><span>" +
-      colorDot + esc(t.label) + " · " + esc(when) + "</span></span>";
+      colorDot + strokeDot + esc(t.label) + " · " + esc(when) + "</span></span>";
     const edit = document.createElement("button");
     edit.type = "button";
     edit.textContent = "수정";
@@ -2716,9 +2799,12 @@ function editRow(id) {
   formArt = ev.art || PRESETS[0].css;
   formArtRatio = ev.artRatio || null;
   formTextColor = ev.textColor || "";
+  formTextStrokeColor = ev.textStrokeColor || "";
   if (fTextColorCustom) fTextColorCustom.value = formTextColor || "#ffffff";
+  if (fStrokeColorCustom) fStrokeColorCustom.value = formTextStrokeColor || "#000000";
   selSwatch(PRESETS.findIndex((p) => p.css === formArt));
   selTextColorSwatch(formTextColor);
+  selStrokeColorSwatch(formTextStrokeColor);
   updateThumb();
   fSubmit.textContent = "수정 저장";
   const body = adminEl.querySelector(".admin-body");
@@ -2754,6 +2840,7 @@ adminForm.addEventListener("submit", (e) => {
     art: formArt,
     artRatio: formArtRatio || null,
     textColor: formTextColor || null,
+    textStrokeColor: formTextStrokeColor || null,
   };
   const at = rawEvents.findIndex((x) => x.id === ev.id);
   const editing = at >= 0;
@@ -2804,6 +2891,21 @@ if (textColorResetBtn) {
     formTextColor = "";
     if (fTextColorCustom) fTextColorCustom.value = "#ffffff";
     selTextColorSwatch("#ffffff");
+    updateThumb();
+  });
+}
+if (fStrokeColorCustom) {
+  fStrokeColorCustom.addEventListener("input", (e) => {
+    formTextStrokeColor = e.target.value;
+    selStrokeColorSwatch(formTextStrokeColor);
+    updateThumb();
+  });
+}
+if (strokeColorResetBtn) {
+  strokeColorResetBtn.addEventListener("click", () => {
+    formTextStrokeColor = "";
+    if (fStrokeColorCustom) fStrokeColorCustom.value = "#000000";
+    selStrokeColorSwatch("");
     updateThumb();
   });
 }
@@ -3046,6 +3148,7 @@ function tickClock() {
 /* ---------- 시작 ---------- */
 buildSwatches();
 buildTextColorSwatches();
+buildStrokeColorSwatches();
 requestAnimationFrame(loop);
 tickClock();
 setInterval(tickClock, 15000);
