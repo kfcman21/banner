@@ -1621,11 +1621,11 @@ function checkForceReload(serverSettings) {
 
   if (serverAt > localAt) {
     try { localStorage.setItem(FORCE_RELOAD_KEY, String(serverAt)); } catch (e) {}
-    console.log("[ForceReload] 관리자 원격 강제 새로고침 신호 수신 (" + serverAt + ") → 캐시 무력화 새로고침");
-    setSync("원격 강제 새로고침 실행 중…");
+    console.log("[ForceReload] 관리자 원격 강제 새로고침 신호 수신 (" + serverAt + ") → 캐시 무력화 및 전체화면 발표 모드로 새로고침");
+    setSync("원격 강제 새로고침 실행 중 (발표 모드)…");
     setTimeout(function () {
       if (!isAdminOpen()) {
-        hardReload();
+        hardReload("#display");
       }
     }, 500);
     return true;
@@ -1828,15 +1828,18 @@ async function checkScheduledReload() {
 }
 
 // 구형 WebView 가 캐시된 문서를 되돌려 주는 것을 막기 위해 주소에 _r 값을 붙여 다시 연다.
-function hardReload() {
+// 새로고침 후 사이니지 화면이 전체화면 발표 모드로 시작하도록 기본적으로 #display 해시를 적용한다.
+function hardReload(forcedHash) {
   try {
+    try { localStorage.setItem("banner-board:displayMode", "1"); } catch (e) {}
     const href = location.href;
-    const hash = location.hash || "";
+    let hash = forcedHash !== undefined ? forcedHash : (isAdminOpen() ? "#admin" : "#display");
     let base = href.replace(/#.*$/, "");
     base = base.replace(/([?&])_r=\d+&?/, "$1").replace(/[?&]$/, "");
     const url = base + (base.indexOf("?") >= 0 ? "&" : "?") + "_r=" + Date.now() + hash;
     location.replace(url);
   } catch (e) {
+    try { localStorage.setItem("banner-board:displayMode", "1"); } catch (err) {}
     location.reload();
   }
 }
@@ -2396,14 +2399,19 @@ function exitFS() {
   try { fn.call(document); } catch (e) {}
 }
 
+const DISPLAY_STORAGE_KEY = "banner-board:displayMode";
+
 function setDisplay(on) {
-  displayMode = on;
-  stage.classList.toggle("display", on);
-  displayBtn.setAttribute("aria-pressed", String(on));
-  displayBtn.querySelector(".lbl").textContent = on ? "발표 모드 종료" : "발표 모드";
+  displayMode = !!on;
+  stage.classList.toggle("display", displayMode);
+  displayBtn.setAttribute("aria-pressed", String(displayMode));
+  displayBtn.querySelector(".lbl").textContent = displayMode ? "발표 모드 종료" : "발표 모드";
   hovering = false;
+  try { localStorage.setItem(DISPLAY_STORAGE_KEY, displayMode ? "1" : "0"); } catch (e) {}
   syncPlay();
-  if (on && !fsElement()) requestFS(document.documentElement);
+  if (displayMode && !fsElement()) {
+    requestFS(document.documentElement);
+  }
 }
 
 function toggleFS() {
@@ -2414,10 +2422,21 @@ function toggleFS() {
 function onFsChange() {
   var fs = !!fsElement();
   fsBtn.querySelector(".lbl").textContent = fs ? "전체화면 종료" : "전체화면";
-  if (!fs && displayMode) setDisplay(false);
 }
 document.addEventListener("fullscreenchange", onFsChange);
 document.addEventListener("webkitfullscreenchange", onFsChange);
+
+// 사용자 제스처(터치/클릭/키) 시 발표 모드이면 OS 전체화면 자동 연계
+function ensureFullscreenOnGesture() {
+  if (displayMode && !fsElement()) {
+    requestFS(document.documentElement);
+  }
+}
+document.addEventListener("pointerdown", ensureFullscreenOnGesture);
+document.addEventListener("keydown", ensureFullscreenOnGesture);
+
+const exitHintEl = document.getElementById("exitHint");
+if (exitHintEl) exitHintEl.addEventListener("click", () => setDisplay(false));
 
 /* ---------- 조작 UI 자동 숨김 ---------- */
 let idleTimer;
@@ -2802,7 +2821,7 @@ if (forceReloadBtn) {
   forceReloadBtn.addEventListener("click", () => {
     const ok = confirm(
       "연결된 모든 장소(사이니지 화면)를 즉시 새로고침하시겠습니까?\n\n" +
-      "확인을 누르면 모든 기기가 다음 확인 주기(최대 30초 내)에 캐시를 비우고 최신 화면으로 다시 시작합니다."
+      "확인을 누르면 모든 기기가 다음 확인 주기(최대 30초 내)에 캐시를 비우고 전체화면 발표 모드로 다시 시작합니다."
     );
     if (!ok) return;
 
@@ -2812,8 +2831,8 @@ if (forceReloadBtn) {
     try { localStorage.setItem(FORCE_RELOAD_KEY, String(now)); } catch (e) {}
     saveSettings();
 
-    showMsg("모든 화면에 새로고침 명령을 전송했습니다. (최대 30초 내 적용)");
-    setSync("모든 화면 새로고침 명령 전송됨 · " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }));
+    showMsg("모든 화면에 새로고침 및 발표 모드 전환 명령을 전송했습니다. (최대 30초 내 적용)");
+    setSync("모든 화면 새로고침 명령 전송됨 (발표 모드) · " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }));
   });
 }
 document.getElementById("adminReset").addEventListener("click", (e) => {
@@ -3075,6 +3094,24 @@ window.addEventListener("focus", wakeCheck);
     setSync("오프라인 — 이 브라우저에만 저장됨");
   }
 
-  if (location.hash === "#admin") setAdmin(true);
+  let shouldDisplay = false;
+  try {
+    if (localStorage.getItem(DISPLAY_STORAGE_KEY) === "1") shouldDisplay = true;
+  } catch (e) {}
+  if (location.hash === "#display") shouldDisplay = true;
+
+  if (location.hash === "#admin") {
+    setAdmin(true);
+  } else if (shouldDisplay) {
+    setDisplay(true);
+  }
 })();
+
+window.addEventListener("hashchange", () => {
+  if (location.hash === "#admin") {
+    if (!isAdminOpen()) setAdmin(true);
+  } else if (location.hash === "#display") {
+    if (!displayMode) setDisplay(true);
+  }
+});
 </script>
