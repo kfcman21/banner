@@ -1,6 +1,9 @@
 <meta charset="utf-8">
 <title>행사 안내 전광판</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#090B10">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -507,6 +510,39 @@
   .pausebadge b, .exithint b { color: #fff; }
   .stage.paused .pausebadge { opacity: 1; }
   .stage.display:not(.idle) .exithint { opacity: 1; }
+
+  /* 전체화면 진입 유도 힌트 (구형 브라우저 등 사용자 터치 제스처 필요 시 노출) */
+  .fshint {
+    position: absolute;
+    left: 50%;
+    bottom: 8%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, .88);
+    border: 1px solid rgba(56, 189, 248, .55);
+    border-radius: 999px;
+    padding: .65em 1.3em;
+    font-family: var(--font-sans);
+    font-size: .88rem;
+    color: #f1f5f9;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .55), 0 0 12px rgba(56, 189, 248, .2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s ease, transform .35s ease;
+    z-index: 19;
+    cursor: pointer;
+  }
+  .fshint b { color: #38bdf8; }
+  .stage.display:not(.is-fullscreen) .fshint {
+    opacity: 1;
+    pointer-events: auto;
+    animation: fshint-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes fshint-pulse {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.03); }
+  }
 
   .stage.idle .chrome,
   .stage.idle .toolbar,
@@ -1044,6 +1080,7 @@
 
   <div class="pausebadge" id="pauseBadge" aria-hidden="true">❙❙ 일시정지 &nbsp;·&nbsp; <b>Space</b> 로 재생</div>
   <div class="exithint" id="exitHint" aria-hidden="true">발표 모드 &nbsp;·&nbsp; <b>Esc</b> 종료</div>
+  <div class="fshint" id="fsHint" aria-hidden="true">화면을 <b>터치</b>하면 전체화면으로 전환됩니다</div>
 
   <div class="chrome" id="chrome">
     <button class="arrow" id="prevBtn" type="button" aria-label="이전 슬라이드">‹</button>
@@ -1685,9 +1722,9 @@ async function loadFromServer() {
 }
 
 let _pushTimer = null;
-function pushToServer() {
+function pushToServer(immediate) {
   clearTimeout(_pushTimer);
-  _pushTimer = setTimeout(async () => {
+  const doPush = async () => {
     try {
       const payload = { events: rawEvents, settings: settings };
       const r = await fetch(SERVER_URL, {
@@ -1709,7 +1746,12 @@ function pushToServer() {
     } finally {
       _pushTimer = null;
     }
-  }, 500);
+  };
+  if (immediate) {
+    doPush();
+  } else {
+    _pushTimer = setTimeout(doPush, 500);
+  }
 }
 
 /* ---------- 서버 변경 실시간 감지 및 자동 새로고침 ---------- */
@@ -1857,15 +1899,26 @@ async function checkScheduledReload() {
 function hardReload(forcedHash) {
   try {
     try { localStorage.setItem("banner-board:displayMode", "1"); } catch (e) {}
-    const href = location.href;
-    let hash = forcedHash !== undefined ? forcedHash : (isAdminOpen() ? "#admin" : "#display");
-    let base = href.replace(/#.*$/, "");
-    base = base.replace(/([?&])_r=\d+&?/, "$1").replace(/[?&]$/, "");
-    const url = base + (base.indexOf("?") >= 0 ? "&" : "?") + "_r=" + Date.now() + hash;
+    var href = location.href;
+    var hash = forcedHash !== undefined ? forcedHash : (isAdminOpen() ? "#admin" : "#display");
+    var base = href.split("#")[0];
+    // 기존 _r 파라미터 깔끔하게 제거
+    base = base.replace(/([?&])_r=\d+(&|$)/, function (m, p1, p2) {
+      return p2 === "&" ? p1 : "";
+    }).replace(/[?&]$/, "");
+    var sep = base.indexOf("?") >= 0 ? "&" : "?";
+    var url = base + sep + "_r=" + Date.now() + hash;
+
+    // 1차: replace 시도
     location.replace(url);
+
+    // 2차 폴백: 구형 브라우저에서 replace가 차단되거나 지연될 경우 href 대입
+    setTimeout(function () {
+      try { location.href = url; } catch (err) {}
+    }, 250);
   } catch (e) {
     try { localStorage.setItem("banner-board:displayMode", "1"); } catch (err) {}
-    location.reload();
+    try { location.reload(true); } catch (e2) { location.reload(); }
   }
 }
 
@@ -2402,26 +2455,74 @@ function loop(t) {
   if (elapsed >= d) next();
 }
 
-/* ---------- 발표 모드 / 전체화면 (구형 삼성 인터넷: webkit 접두사 대응) ---------- */
+/* ---------- 발표 모드 / 전체화면 (구형 삼성 인터넷: webkit/moz/ms 접두사 및 제스처 대응) ---------- */
 function fsElement() {
-  return document.fullscreenElement || document.webkitFullscreenElement ||
-         document.webkitCurrentFullScreenElement || null;
+  return document.fullscreenElement ||
+         document.webkitFullscreenElement ||
+         document.webkitCurrentFullScreenElement ||
+         document.mozFullScreenElement ||
+         document.msFullscreenElement ||
+         ((document.webkitIsFullScreen || document.fullScreen || document.mozFullScreen) ? (document.fullscreenElement || document.body || document.documentElement) : null);
 }
+
 function requestFS(el) {
-  var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitRequestFullScreen;
-  if (!fn) return;
+  if (!el) el = document.documentElement;
+  var fn = el.requestFullscreen ||
+           el.webkitRequestFullscreen ||
+           el.webkitRequestFullScreen ||
+           el.mozRequestFullScreen ||
+           el.msRequestFullscreen;
+  if (!fn) {
+    if (el !== document.body && document.body) {
+      fn = document.body.requestFullscreen ||
+           document.body.webkitRequestFullscreen ||
+           document.body.webkitRequestFullScreen;
+      if (fn) {
+        try {
+          var p0 = fn.call(document.body);
+          if (p0 && typeof p0.catch === "function") p0.catch(function () {});
+        } catch (e0) {}
+      }
+    }
+    return;
+  }
   try {
     var p = fn.call(el);
     if (p && typeof p.catch === "function") p.catch(function () {});
-  } catch (e) {}
+  } catch (e) {
+    if (el !== document.body && document.body) {
+      try {
+        var fn2 = document.body.requestFullscreen || document.body.webkitRequestFullscreen || document.body.webkitRequestFullScreen;
+        if (fn2) {
+          var p2 = fn2.call(document.body);
+          if (p2 && typeof p2.catch === "function") p2.catch(function () {});
+        }
+      } catch (err2) {}
+    }
+  }
 }
+
 function exitFS() {
-  var fn = document.exitFullscreen || document.webkitExitFullscreen || document.webkitCancelFullScreen;
+  var fn = document.exitFullscreen ||
+           document.webkitExitFullscreen ||
+           document.webkitCancelFullScreen ||
+           document.mozCancelFullScreen ||
+           document.msExitFullscreen;
   if (!fn) return;
   try { fn.call(document); } catch (e) {}
 }
 
 const DISPLAY_STORAGE_KEY = "banner-board:displayMode";
+const fsHintEl = document.getElementById("fsHint");
+
+function updateFsState() {
+  var fs = !!fsElement();
+  stage.classList.toggle("is-fullscreen", fs);
+  if (fsBtn) {
+    var lbl = fsBtn.querySelector(".lbl");
+    if (lbl) lbl.textContent = fs ? "전체화면 종료" : "전체화면";
+  }
+}
 
 function setDisplay(on) {
   displayMode = !!on;
@@ -2431,6 +2532,7 @@ function setDisplay(on) {
   hovering = false;
   try { localStorage.setItem(DISPLAY_STORAGE_KEY, displayMode ? "1" : "0"); } catch (e) {}
   syncPlay();
+  updateFsState();
   if (displayMode && !fsElement()) {
     requestFS(document.documentElement);
   }
@@ -2442,23 +2544,36 @@ function toggleFS() {
 }
 
 function onFsChange() {
-  var fs = !!fsElement();
-  fsBtn.querySelector(".lbl").textContent = fs ? "전체화면 종료" : "전체화면";
+  updateFsState();
 }
 document.addEventListener("fullscreenchange", onFsChange);
 document.addEventListener("webkitfullscreenchange", onFsChange);
+document.addEventListener("mozfullscreenchange", onFsChange);
+document.addEventListener("MSFullscreenChange", onFsChange);
 
 // 사용자 제스처(터치/클릭/키) 시 발표 모드이면 OS 전체화면 자동 연계
-function ensureFullscreenOnGesture() {
+// 구형 삼성 브라우저(Android 6~8)는 터치(touchstart/touchend/click) 시에만 풀스크린 API가 승인됨
+function ensureFullscreenOnGesture(e) {
+  if (e && e.target && e.target.closest && e.target.closest("#admin, .toolbar, #adminBackdrop")) {
+    return;
+  }
   if (displayMode && !fsElement()) {
     requestFS(document.documentElement);
   }
 }
-document.addEventListener("pointerdown", ensureFullscreenOnGesture);
-document.addEventListener("keydown", ensureFullscreenOnGesture);
+
+var GESTURE_EVENTS = ["touchstart", "touchend", "click", "pointerdown", "mousedown", "keydown"];
+for (var gi = 0; gi < GESTURE_EVENTS.length; gi++) {
+  document.addEventListener(GESTURE_EVENTS[gi], ensureFullscreenOnGesture, { passive: true });
+}
 
 const exitHintEl = document.getElementById("exitHint");
 if (exitHintEl) exitHintEl.addEventListener("click", () => setDisplay(false));
+if (fsHintEl) {
+  fsHintEl.addEventListener("click", () => {
+    requestFS(document.documentElement);
+  });
+}
 
 /* ---------- 조작 UI 자동 숨김 ---------- */
 let idleTimer;
@@ -2932,6 +3047,7 @@ if (forceReloadBtn) {
     // 관리자 자신은 이미 명령을 내렸으므로 로컬 타임스탬프를 갱신하여 중복 실행 방지
     try { localStorage.setItem(FORCE_RELOAD_KEY, String(now)); } catch (e) {}
     saveSettings();
+    pushToServer(true);
 
     showMsg("모든 화면에 새로고침 및 발표 모드 전환 명령을 전송했습니다. (최대 30초 내 적용)");
     setSync("모든 화면 새로고침 명령 전송됨 (발표 모드) · " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }));
@@ -3165,6 +3281,7 @@ function wakeCheck() {
 document.addEventListener("visibilitychange", wakeCheck);
 window.addEventListener("pageshow", wakeCheck);
 window.addEventListener("focus", wakeCheck);
+window.addEventListener("online", wakeCheck);
 
 (async () => {
   const gotServer = await loadFromServer();   // 실패해도 로컬 저장값으로 계속
